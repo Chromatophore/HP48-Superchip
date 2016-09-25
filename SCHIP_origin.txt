@@ -1,0 +1,281 @@
+SuperChip version 1.1 - the most up to date version of superchip we were able to locate, and so far as we're aware, the version from which all subsequent superchip platforms take their lead from - however they take their lead from the SPECIFICATION that is laid out in the body of this message, not what the binary actually does.
+
+While there is an ASC attached to this, it is not the origin for the binary in this repo. The schip binary in this repo is from the hpcalc.org website: http://www.hpcalc.org/details/854 - this is also the source for SCHIP.DOC
+
+We do not have the source file for this version of superchip, and all understanding has been obtained from the dissassembly.
+
+Recovered from https://groups.google.com/forum/#!searchin/comp.sys.handhelds/super$20chip/comp.sys.handhelds/sDY9zFb6KUo/JcYBK2_yerMJ
+
+Erik Bryntse
+
+5/23/91
+
+Ok, here are a new version of S-CHIP. It is a lot faster than version
+1.0 and have some new scroll functions. And it's still small!
+I have copied parts of the original CHIP-48 documentation and added the
+new functions that are available in S-CHIP.
+
+If you would like to start writing games for CHIP, read this, get yourself 
+an assembler, look at someone else's program and get started! It's not 
+difficult, you can get something up and working in just an hour or so. 
+And you get the benefits of machine code - the speed - without having 
+to learn all the internals of the 48. And it won't crash when you do 
+something wrong (I hope...).
+
+... and by the way, H. Piper is exactly the kind of super fantastic
+games that I would like to see more of. Good work!
+
+
+SUPER-CHIP v1.1
+===============
+
+... a modified version of the CHIP-8 game interpreter originally
+made by Andreas Gustafsson.
+
+S-CHIP offers:
+
+- full screen resolution in new extended screen mode
+- downward compability (you can run your old CHIP games)
+- higher speed in extended mode
+- a larger 16x16 sprite available
+- new, larger fonts for scores
+- you can pass information to and from a S-CHIP program
+- programmable exit from the S-CHIP interpreter possible
+- no need to turn off the clock
+- it will always start
+- instructions to scroll the screen down, left, and right
+
+
+Introduction to CHIP
+--------------------
+
+For those who don't remember, the CHIP-8 programming language was
+used in a number of home computers based on RCA's CDP1802 pro-
+cessor in the late 1970's.  It's a small, interpreted language
+designed specifically  for writing simple video games.  It has
+less than 40 instructions, including arithmetic, control flow,
+graphics, and sound.  The instructions are all 16 bits long and
+are executed by a very compact virtual machine interpreter (the
+1802 implementation was 512 bytes long).
+ 
+
+Technical specification 
+-----------------------
+
+The CHIP-8 virtual machine is byte-addressable and has an address
+space of 4 kB at addresses 000-FFF hex.  However, addresses
+000-1FF are reserved (this is where the CHIP-8 interpreter used to
+reside). Therefore, the CHIP-8 program itself begins at address
+200. All instructions are 16 bits long and by convention instruc-
+tions always start at an even address. 
+ 
+The machine has 16 8-bit general-purpose registers called V0..VF. 
+The VF register is modified by certain instructions and works as a
+carry flag and sprite collision indicator.  There is also a 16-bit
+pointer register I (though only the low 12 bits are generally
+used). 
+ 
+A CHIP-8 program displays graphics by drawing sprites that are 8 
+pixels wide and 1..15 pixels high.  The screen resolution is 32 by
+64 pixels in standard mode.  The origin is the upper left corner
+of the screen, and all coordinates are positive.  The sprites are
+stored in bigendian format, i.e., the most significant bit corre-
+sponds to the leftmost pixel. All drawing is done in XOR mode. If
+this causes one or more pixels to be erased, VF is <> 00, other-
+wise 00.
+
+In extended screen mode the resolution is 64 by 128 pixels. A
+sprite of 16x16 size is available. 
+ 
+There are two timers: the delay timer and the sound timer.  Both 
+timers count down about 60 times per second when nonzero; the
+speaker will beep whenever the sound timer is nonzero. 
+ 
+In the instruction table below, NNN is a 12-bit address, KK is an 
+8-bit constant, and X and Y are 4-bit register numbers.  Hex 
+characters represent themselves.  The two first characters of the 
+instruction code form the lower-address byte of the instruction,
+the first character being the more significant nibble. 
+ 
+Instructions marked with (*) are new in SUPER-CHIP.
+
+00CN*    Scroll display N lines down
+00E0     Clear display 
+00EE     Return from subroutine
+00FB*    Scroll display 4 pixels right
+00FC*    Scroll display 4 pixels left
+00FD*    Exit CHIP interpreter
+00FE*    Disable extended screen mode
+00FF*    Enable extended screen mode for full-screen graphics
+1NNN     Jump to NNN 
+2NNN     Call subroutine at NNN 
+3XKK     Skip next instruction if VX == KK 
+4XKK     Skip next instruction if VX <> KK 
+5XY0     Skip next instruction if VX == VY 
+6XKK     VX := KK 
+7XKK     VX := VX + KK 
+8XY0     VX := VY, VF may change 
+8XY1     VX := VX or VY, VF may change 
+8XY2     VX := VX and VY, VF may change 
+8XY3     VX := VX xor VY, VF may change
+8XY4     VX := VX + VY, VF := carry 
+8XY5     VX := VX - VY, VF := not borrow 
+8XY6     VX := VX shr 1, VF := carry 
+8XY7     VX := VY - VX, VF := not borrow
+8XYE     VX := VX shl 1, VF := carry 
+9XY0     Skip next instruction if VX <> VY 
+ANNN     I := NNN 
+BNNN     Jump to NNN+V0 
+CXKK     VX := pseudorandom_number and KK 
+DXYN*    Show N-byte sprite from M(I) at coords (VX,VY), VF :=
+         collision. If N=0 and extended mode, show 16x16 sprite.
+EX9E     Skip next instruction if key VX pressed 
+EXA1     Skip next instruction if key VX not pressed 
+FX07     VX := delay_timer 
+FX0A     wait for keypress, store hex value of key in VX 
+FX15     delay_timer := VX 
+FX18     sound_timer := VX 
+FX1E     I := I + VX 
+FX29     Point I to 5-byte font sprite for hex character VX 
+FX30*    Point I to 10-byte font sprite for digit VX (0..9)
+FX33     Store BCD representation of VX in M(I)..M(I+2) 
+FX55     Store V0..VX in memory starting at M(I) 
+FX65     Read V0..VX from memory starting at M(I) 
+FX75*    Store V0..VX in RPL user flags (X <= 7)
+FX85*    Read V0..VX from RPL user flags (X <= 7)
+
+ 
+Notes on the HP48SX implementation  
+----------------------------------
+
+CHIP-8 programs are stored in the HP48SX as string objects con-
+taining the bytes of the program in increasing address order,
+beginning with the byte at 0200.  The interpreter itself is a
+machine code object that should be run with the CHIP-8 program
+string on level 1. 4 kB of free memory is needed.  If an error is
+detected during execution, the address of the current CHIP-8
+instruction is returned as a binary integer on level 1. 
+ 
+To quit, press the backspace key.  Pressing ENTER restarts the
+CHIP-8 program, and the +/- key turns the sound off or on. 
+ 
+Subroutine nesting is limited to 16 levels. 
+ 
+Most chip-8 programs are written for a 16-key hex keyboard with  
+following layout: 
+ 
+  1 2 3 C                                               7 8 9 / 
+  4 5 6 D    This keyboard is emulated on the HP48SX    4 5 6 * 
+  7 8 9 E    using the following keys:                  1 2 3 - 
+  A 0 B F                                               0 . _ + 
+ 
+This may cause some confusion with programs requiring numerical
+input. 
+ 
+
+Copyrights, etc
+---------------
+
+Parts of this document is copied from the original CHIP-48 docu-
+mentation written by Andreas Gustafsson. Below is the original
+copyright message for CHIP-48 v2.25
+
+(c) Copyright 1990 Andreas Gustafsson
+
+Noncommercial distribution allowed, provided that this copyright
+message is preserved, and any modified versions are clearly marked
+as such.
+
+The program makes use of undocumented low-level features of the
+HP48SX calculator, and may or may not cause loss of data, ex-
+cessive battery drainage, and/or damage to the calculator hard-
+ware. The author takes no responsibility whatsoever for any damage
+caused by the use of this program.
+
+THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESSED OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PUR-
+POSE.
+
+
+The modifications from CHIP v2.25 to S-CHIP v1.1 is made by
+
+Erik Bryntse
+(eri...@etek.chalmers.se)
+
+Download file in ASC-format
+---------------------------
+
+Download to your 48, use ASC-> and store as SCHIP.
+
+To run a game, press SCHIP with the game string in level 1.
+
+%%HP: T(3)A(R)F(.); 
+"CCD20EE0108FB97608FFBA81346C1208FD7B5013281AF04346C100CA81AF0281 
+AF1C134AF2154716F154716F370000100415C781AF143417000C213434B55078 
+0821837D51341550780821807B418F2D76081AF123400400C213414713514334 
+C2A208A6A1174143818F843400C108B23134FFFFF81AF0B6E3617471218F2D76 
+0174E78FB976081AF1A13481B43498E00C2135808210515F0F217015C1161CC9 
+6CBE81B434BAE00C21358082182147144164174CC96CFE84F808FD2108320028 
+1AF0B81AF143482000C2134D2144163144345C100C2134D215407BA2D2328311 
+34146DA1468A68F8082408F000EF281AF016394135147818F2F818F23144818F 
+2F818F2F818F21164A6C96C2E018A86115F015C0160170CC6AEF01D2312281AF 
+14C213414E96A92161156090AD116015E2801DAFC3200C0E3215C21B83100142 
+3408F000EF21118A64003D23108EA3408F000EF681AF017CC014E96A80A6E14C 
+16114E96A80A6E14C81AF143482000CA130320108018F06110DAD280115E3158 
+3FC0EF6808740080870008087370301037D601560FE8082010EF2154062EFD22 
+215702017114F1C101C6112C201D21570C6114C21340111413001D230F66EFD2 
+31016CDFD2311162DFD2312168CF172D21141570C6C2134D214E061C2D21570C 
+6C2134D014A07DE01F6F6D0E40E6611C13416E16E14803C681B4CA34FDC00C21 
+34D215E08018F06110DAD280116015E00EF201112118C6C213511413201114D6 
+136818F0D8BA40DA0177EEDAD2310E8A6141143417000CA3104D5130146134AF 
+2154716F154716F14C818F04A6D96D7D0331EE8A68311434C2000C21341428A8 
+00818F83140818F24C2134D215E310B0331FF8A6D181AF14345C100C213430F1 
+54003A6E8A6C181AF14345C100C2134D2154003A6E8A6606951A6E8A6A411434 
+17000C213431F3D7D01461641351577816155717F15771C0155717F1510A6F53 
+D03A6E8A6D41143417000C213431F3D7D014616413517F157781215571CF1577 
+17015571C01510A6F50D03D6F68180AB90A606F80D1A888A90011434CA100CA1 
+3031F3B69D7D4C5C5C8146135136134E91361421321527151716F17F15271517 
+134184A6F59CAF08A912146184135151717F1517818F948AD3E03027BBB55280 
+864606FEA808085F8F2D760142164808C11B818F2112BC6112C2135D01701530 
+1C0C4C4D881B434A1000C2063412000C9C281B35F86340636D6F406450699065 
+B067C063D06ED06FE06FB063C168C168D16FF1642364B3808085F11B1088DF75 
+3077FB10B0381AF1434C2000C2134142818F24C213681AF131583136142818F0 
+334040008B60014061BF73CB17114B14E966E012B818F2112B0373AB17114B14 
+E962EE6FDF7ECB62DF76CB6AEF7D7B17114B148037E6B17114B14EA6214C0317 
+115B01C1D2906B0798B14803E690601797B0E6A15C103E690601746B0E6215C1 
+03E6906D17F4BAE80E690E62BEE0E6514C03E6906017D2BC215C16B5BE690651 
+781BBECC2E615C1614BE6906917EFAAEA8196215C1AE6672BE6906C070EADE65 
+CF30E906017ECAC615C16CFA027F5A10803747A725AD014AC210B03706A34401 
+0013615A113617114F1C10E6214C03610281AF14345C100C2134156090A60619 
+071F848D90A6F74D381AF1877F91087A3AD731F10E6631F30E63171AE215F0A6 
+2AE53102B61550AE1AE215F0B6980D080CF2EA82201C17AD475A38EAB9FAE22E 
+90A50B6614C20037253118C6112C210878B9D731F30E6631F70E63171AF2AF11 
+5F090EB081862FB4506A62AE53104B61550AE107B6980D080CF201C173537A13 
+7139D914C037C09D214E7699AE3A8717114B1C131E9962D0311A962E002AEBAE 
+06F3DAEBAE0651D13606D3DB725990E218EF87F433B0768EF73D8314015C18E3 
+77F471DB722990E2E07134AEB030702787817114B1C131709668113606708814 
+A071361480331A096661777F47014C03078CA5BF31519662114E0674480714C0 
+331819662114E0675380714C0331E196651D214E110A3A40010003319296681D 
+2D01520A86C6C6C210803310396602D2D01520A86C4C4CAC43105CA100033133 
+96260659014EAE781B4348E400C2134D096B42AEB808A0C015E205CA04162819 
+636EDF02D881AF1880824DFF008B2008ED27F134D4D222150016015401602115 
+0016015401602015001601540033155966E28ECB7F118D714E14D1361348BA01 
+171161B3755E02033156966E28E787F118D714F14C1361348BA01171161B3755 
+E02033157966828E767F1F5D60714E14D1361341711618B6BE033158966828E8 
+37F1F5D60714F14C1361341711618B6BE0302114341B100C2134110140164111 
+14016411214016411314016401114341B100C213414210016414210116414210 
+216414210316401D6C4C4C2114CA3417000C2135DB819F2819F210A31300E633 
+17094980818627A6B10B81AF18134D014A949C0161F0F014A136818F2110881A 
+F1BAF3AE7D2C68086040E681CCF5FED7147174112C21343102B6280821309498 
+08186019E650AE6A6E80D01561A9A0E1791A50B65A9F0E1AB9F0E17154120A4E 
+94A606E4F01C4D6C4C4C281AF14CA3417000C281AF09DB819F2819F2819F2C6C 
+681AF0A31700E63CB81AF0B81AF18134D014A818F2181AF0881AF1BD3A77A778 
+086080818F32819F0A6E54E81AF11130146818F0981AF0181AF12C21343102B6 
+280821809E650AE6A6E80D01561A9A0E1791AF080FD2E30180FDA9F0E1AB9F0E 
+17154116F16F161154120A4E94A60693F01F999F26227F1F8FF1F1F99F11F8F1 
+FF8F9FF1244F9F9FF9F1FF9F99E9E9EF888FE999EF8F8FF8F88C3E77E3C3C3C3 
+C7EE7C3818385818181818181C3E3F73C60C0810306FFFFC3E73C30E0E0303CE 
+7C360E0E163666CFFFF6060FFFF0C0CCFEF303CE7C3E3C70C0CCFEF3C3CE7C3F 
+FFF3060C08103060606C3E73C3CE7E73C3CE7C3C3E73C3CF7F33030E3C710020 
+0400800610230460821148884824844422824221812814121116856"
