@@ -240,37 +240,47 @@
 00388  C=0     A
 0038A  LC      12
 0038E  GOTO    00357			# This is the end of the fixed register stuff
-00392  D1=D1+  3
-00395  C=0     A
-00397  A=R4
-0039A  C=DAT1  P
-0039E  C=C+C   A
-003A0  C=C+A   A
-003A2  D0=C
-003A5  C=0     A
-003A7  C=DAT0  B
-003AA  RSTK=C
-003AC  D1=D1-  3
-003AF  C=0     A
+00392  D1=D1+  3 				# This is ALU setup:
+00395  C=0     A 				# Clears C
+00397  A=R4 					# Sets A to be the start of the data area (v0)
+0039A  C=DAT1  P 				# loads the instruction nibble for Y
+0039E  C=C+C   A 				# Doubles it becaues it's a byte value and needs to be nibble #
+003A0  C=C+A   A 				# Add that to A
+003A2  D0=C 					# Sets the poiter to vY
+003A5  C=0     A 				# Blow out C
+003A7  C=DAT0  B 				# Load a byte from d0 into it
+003AA  RSTK=C 					# Push it
+003AC  D1=D1-  3 				# Point back at X nibble
+003AF  C=0     A 				# Repeat the whole process
 003B1  C=DAT1  P
 003B5  C=C+C   A
 003B7  C=C+A   A
 003B9  D0=C
 003BC  A=0     A
-003BE  A=DAT0  B
-003C1  C=RSTK
-003C3  ACEX    A
+003BE  A=DAT0  B 				# Save it in A this time
+003C1  C=RSTK 					# Pop the vY data from earlier
+003C3  ACEX    A 				# Swap C and A so C is vX and A is vY
 003C5  RTN
-003C7  CSR     A
-003C9  CSR     A
-003CB  A=0     A
-003CF  A=A&C   B
-003D3  C=R4
-003D6  D0=C
-003D9  D0=D0+  15
+003C7  CSR     A 					# savecarry. 
+003C9  CSR     A 					# Shifting C right by whole nibbles twice
+003CB  A=0     A 					# Blow out A. # NB: Why is this going from 003CB to F? A=0 should be 2 nibbles
+003CF  A=A&C   B 					# This seems ineffective? And A with C? A is 0?
+003D3  C=R4 						# Set C to v0 address...
+003D6  D0=C 						# Stuff that in d0...
+003D9  D0=D0+  15 					# Add 30 to d0, which is going to point us at vF's byte
 003DC  D0=D0+  15
-003DF  DAT0=A  B
-003E2  RTNCC
+003DF  DAT0=A  B 					# Save the value of A in there. How the hell does this even work?
+
+# What byte code is actually here?
+# ...F6F6D0E40E6611C...
+# F6 = CSR
+# F6 = CSR
+# D0 = A=0
+# E4 = A=A+1 						# <<< Who could have guessed...
+# 0E66 = 0Ea6 = A=A&C B
+# Yeah OK, so, that's cool, A=A+1 is literally just missing completely here. What kind of dissassembly is this?
+
+003E2  RTNCC 						# Return, clearing carry bit
 003E4  C=C+C   A
 003E6  A=PC
 003EA  A=A+C   A
@@ -639,7 +649,7 @@
 00889  C=C+1   A
 0088B  ?C#A    P
 0088E  GOYES   008A7
-00890  GOSUB   00392
+00890  GOSUB   00392 		# Shift right
 00894  A=C     B
 00897  CSRB    B
 0089C  DAT0=C  2
@@ -654,7 +664,7 @@
 008B8  LC      E
 008BB  ?C#A    P
 008BE  GOYES   008CE
-008C0  GOSUB   00392
+008C0  GOSUB   00392 		# Shift left
 008C4  C=C+C   A
 008C6  DAT0=C  2
 008CA  GOTO    003C7

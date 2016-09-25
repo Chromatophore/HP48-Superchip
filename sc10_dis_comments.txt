@@ -293,7 +293,7 @@
 00453  C=RSTK
 00455  D1=D1-  3
 00458  RTN
-0045A  D1=D1+  3
+0045A  D1=D1+  3 					# ALU Setup
 0045D  GOSUB   003F7
 00461  D1=D1-  3
 00464  C=0     A
@@ -304,16 +304,16 @@
 00472  A=DAT0  2
 00476  C=RSTK
 00478  ACEX    A
-0047A  RTN
-0047C  CSR     A
-0047E  CSR     A
-00480  LA      01
-00487  C=C&A   B
-0048B  RSTK=C
-0048D  GOSUB   00415
-00491  C=RSTK
-00493  DAT0=C  B
-00496  RTNCC
+0047A  RTN 			
+0047C  CSR     A 					# savecarry 
+0047E  CSR     A 					# Shifting C right by whole nibbles twice
+00480  LA      01 					# set bit 1 of A to true
+00487  C=C&A   B 					# And look at only that bit of C
+0048B  RSTK=C 						# Push it
+0048D  GOSUB   00415 				# Get vF pointer from varfpd0
+00491  C=RSTK 						# Pop C
+00493  DAT0=C  B 					# Write carry bit as a byte to vF
+00496  RTNCC 						# Return, clearing carry bit
 00498  C=C+C   A
 0049A  A=PC
 0049E  A=A+C   A
@@ -531,7 +531,7 @@
 00767  LC      6
 0076A  ?C#A    P
 0076D  GOYES   00786
-0076F  GOSUB   0045A
+0076F  GOSUB   0045A 			# Shift right
 00773  A=C     B
 00776  CSRB    B
 0077B  DAT0=C  2
@@ -546,7 +546,7 @@
 00798  LC      E
 0079B  ?C#A    P
 0079E  GOYES   007AE
-007A0  GOSUB   0045A
+007A0  GOSUB   0045A 			# Shift left
 007A4  C=C+C   A
 007A6  DAT0=C  2
 007AA  GOTO    0047C
