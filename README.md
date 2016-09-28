@@ -22,11 +22,11 @@ One of the most helpful information sources in this process has been an ["Introd
 
 # Behavior and Quirk Investigations
 These will, once I have written them, link to investigations of each quirk of which I am aware.
-#### 8XY6 & 8XYE
+#### [8XY6 & 8XYE](investigations/quirk_shift.md)
 Bit shifts X register by 1, VIP: shifts Y by one and places in X, HP48-SC: ignores Y field, shifts X
 #### FX55 & FX65
 Saves/Loads registers up to X at I pointer - VIP: increases I, HP48-SC: I remains static
-#### BNNN
+#### [BNNN](investigations/quirk_jump0.md)
 Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads highest nibble of address to select register to apply to address (high nibble pulls double duty)
 #### Memory Limit
 Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. HP48-SC: No such utilisation of memory, but, maximum file length results in crash.

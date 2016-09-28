@@ -373,3 +373,59 @@ SCHIP 1.1 (1.0 & C48 behave the same):
 SCHPC:  
 ![SCHPC](quirk_shift_img/schpc.jpg)  
 
+## After thoughts:
+
+So, in the process of fixing this I've learnt quite a lot about the tools I have available to me, and the format of the binaries for the calculator. Having added the extra data on the end meant I had to learn about the header the files have, which includes a length value that needs to be set correctly. I learnt about the difference between jumps and subroutine calls, and the flaws in DECODE and in my saturn guide. It's all been quite terrible, really. However, the best part is, now that I finally have it all working, I've figured out how to do it in place. So, I didn't put it in before, but, here are the wrappings for shift left
+
+```
+008B8  LC      E
+008BB  ?C#A    P
+008BE  GOYES   008CE
+008C0  GOSUB   00392 		# Shift left
+008C4  C=C+C   A
+008C6  DAT0=C  2
+008CA  GOTO    003C7
+008CE  RTNSC
+008D0  ...
+```
+
+Basically, all the arithmetic operations are tested for by loading a value into C, comparing it with A, and if they don't match, jumping over the next instruction. Shift left is the last ALU instruction of the 8 available, and, if it isn't this one, and it hasn't been any of the previous ones, we return with the carry bit set which tells the interpreter that the instruction was not recognised. So, you can see that the GOYES points at a RTNSC the other side of the our shift left handler, and that RTNSC is a 2 nibble instruction. There are other RTNSC instructions, if we could point GOYES at one of those, shift our other instructions by 2 nibbles into now free 008CE, and fit C=A into the beginning at 008C4, which would have avoided ~every single thing I hard to figure out - if I'd realised this sooner, or just been a bit more pragmatic, I'm not sure if I would have been better off or not. I'll switch to this solution, I think, as it will be far faster:
+
+```
+Bytecode: 90601
+008BB  ?C#A    P
+008BE  GOYES   008CE
+```
+
+So ?C#A P is likely 9a6yz, where zy is a 2 bit relative address, so if it works like the others (it does?) that'll be ~+= 128. Our GOYES goes from 8BE to 8CE which is 0x10 more, and that's the exact value of our xy, but the 9a6 is on 8BB, so, it's going from the start value of the GOYES instruction, so, our range here is from 8BE. Can we find a RTNSC in that area? There's one at 0066B and 00A6F, which are both just too far to reach from 8BE, our window is only ~7BE to 9BE. However, the opcode for RTNSC is 02 - much like chip8, if we can find that instruction somewhere in there, we can jump to it and it should safely kill the program.
+
+```
+00912  RTNCC
+00914  GOTO    00B16
+00918  A=R4    A
+0091E  LC      001C5
+
+Bytecode:
+03 6102 81AF1F 345C10
+```
+
+Observe that there, by pure luck, is a 02 in the jump instruction. It's address is at 00916, which requires only a jump of only 0x58. That's... actually gonna work, I think? So! Replacing 0x10 with 0x58 should do the job. 
+
+```
+Bytecode before
+906 01 7ECA C6 15C1 6CFA 02
+Byecode after
+906 85 7ECA D6 C6 15C1 6AFA
+
+008BB  ?C#A    P
+008BE  GOYES   00916
+008C0  GOSUB   00392
+008C4  C=A     A
+008C6  C=C+C   A
+008C8  DAT0=C  2
+008CC  GOTO    003C7
+```
+
+Now all we need is a test program: http://johnearnest.github.io/Octo/index.html?gist=a4403699bbaf29d1fa9408ad00d8eea1
+
+This, when the button is pushed, octo halts due to invalid arithmetic, and schpc crashes out with a 550d in the same way that schip does, sooooo, I guess that's... good?? I've dropped the code I added from the end and restored the original binary length value. I mean, we'll know for next time what our options are so this has been worthwhile but, the solution here is superior, I think.
