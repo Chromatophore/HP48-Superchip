@@ -397,7 +397,7 @@ Bytecode: 90601
 008BE  GOYES   008CE
 ```
 
-So ?C#A P is likely 9a6yz, where zy is a 2 bit relative address, so if it works like the others (it does?) that'll be ~+= 128. Our GOYES goes from 8BE to 8CE which is 0x10 more, and that's the exact value of our xy, but the 9a6 is on 8BB, so, it's going from the start value of the GOYES instruction, so, our range here is from 8BE. Can we find a RTNSC in that area? There's one at 0066B and 00A6F, which are both just too far to reach from 8BE, our window is only ~7BE to 9BE. However, the opcode for RTNSC is 02 - much like chip8, if we can find that instruction somewhere in there, we can jump to it and it should safely kill the program.
+So ?C#A P is likely 9a6yz, where zy is a 2 bit relative address, so if it works like the others (it does?) that'll be ~+= 128. Our GOYES goes from 8BE to 8CE which is 0x10 more, and that's the exact value of our xy, but the 9a6 is on 8BB, so, it's going from the address value of the GOYES in the disassembly, so, our range here is from 8BE. Can we find a RTNSC in that area? There's one at 0066B and 00A6F, but these are both just too far to reach from 8BE; our window is only ~7BE to 9BE. However, the opcode for RTNSC is 02 - much like chip8, if we can find that pair of nibbles somewhere in that range, we can jump to it and it should just read it as an instruction and I guess safely kill the program. The chances of finding it in there are... actually pretty good? In random noise, there'd be a 1 in 256 chance that a given pair of nibbles would be 02, and, my opinion of schip at the moment is that it really isn't that different from random noise... plus we have a 256 nibble window which will have 255 pairs in it, so, only thing to do is to just scan through nibble by nibble and see if I can see a 02...
 
 ```
 00912  RTNCC
@@ -409,7 +409,7 @@ Bytecode:
 03 6102 81AF1F 345C10
 ```
 
-Observe that there, by pure luck, is a 02 in the jump instruction. It's address is at 00916, which requires only a jump of only 0x58. That's... actually gonna work, I think? So! Replacing 0x10 with 0x58 should do the job. 
+Observe that there is, by pure luck, a 02 in the jump instruction's relative address. It's address is at 00916, which requires a jump of only 0x58. That's... actually gonna work, I think? So! Replacing 0x10 with 0x58 should do the job. There's another 02 at 97C as part of an LC operation, so, 2 chances at getting lucky!
 
 ```
 Bytecode before
