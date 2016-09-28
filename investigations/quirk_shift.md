@@ -7,7 +7,7 @@ On some original hardware, possibly the cosmac VIP, my understanding is that the
 
 ## Investigation:
 
-Regardless, by using quirks.8o, we were able to observe that the rotation quirk is present in Chip48. If we investigate the source code for it, we can see the following:
+Regardless, by using quirks.8o, we were able to observe that the rotation quirk is present in Chip48, SC10 and SCHIP. If we investigate the source code for c48, we can see the following:
 
 ```
 i8xy6:		; VX := VX >> 1; carry in VF
@@ -25,7 +25,7 @@ i8xye:		; VX := VX << 1; carry in VF
 		jump.3		savecarry
 ```
 
-The alusetup routine loads the values of register X and Y into the HP48's c and a registers respectively. The Human readable version of these routines is thus:
+The alusetup routine loads the values of register X and Y into the HP48's C and A registers respectively. The Human readable version of these routines is thus:
 
 ```
 VX := VX >> 1, carry in vF
@@ -45,9 +45,9 @@ VX := VX << 1; carry in VF
 
 Obviously, these completely ignore the value of vY, so it's pretty clear to see why vY is not used. This behavior can be traced to Chip-48 and these routines were not changed for Superchip 1.0.
 
-In Superchip 1.1, some unrelated elements were changed - ALU Setup routine was changed about a bit, but, these two shift functions have exactly the same code. You might also wonder, how is the carry value actually set?
+In Superchip 1.1, some unrelated elements were changed - ALU Setup routine was changed about a bit, but, these two shift functions have exactly the same code. You might also wonder, how is the carry value for vF actually set?
 
-lsbcarry and savecarry point at pretty much the same code: the difference is that lsb carry shifts the nibbles of C to the right twice before running the savecarry code - savecarry takes the lowest bit of C and stores it into vF. The Chip-48 & Schip1.0 code looks like this:
+The lsbcarry and savecarry labels point at pretty much the same code: the difference is that lsb carry shifts the *nibbles* of C to the right twice before running the savecarry code - savecarry takes the lowest bit of C and stores it into vF. The Chip-48 & Schip1.0 code looks like this:
 
 ```
 savecarry:
@@ -103,6 +103,8 @@ And, here is the disassembly for the Schip1.1 code:
 003E2  RTNCC 						# Return, clearing carry bit
 ```
 
+These other functions are innocuous enough, otherwise. If we can use the initial value from the A register, instead of the value in the C register, then provided our result still ends up in C, the quirk should no longer occur.
+
 ## Fixing it
 
 In order to fix this quirk, we can refer back to the source code, for the basic part of the operations. The main thing we need to make sure of is that C ends up containing the carry information.
@@ -117,9 +119,9 @@ i8xy6:		; VX := VX >> 1; carry in VF
 		jump.3		lsbcarry
 ```
 
-Shift right seems like we could fix it in place. If we change move.b c,a to move.b a,c, we'll replace the value in c with that in a (so we replace vX with vY) and keep the value in a that we later &= with 0x01 to set the carry flag.
+Shift right seems like we could fix it in place. If we change move.b c,a to move.b a,c, we'll replace the value in C with that in A (so we replace vX with vY) and keep the value in A that, after we store to @d0, will restore back into C so we can call lsbcarry.
 
-So looking this up in the Saturn guide, A=C (b) is AE8 and C=A (b) is AEA. Changing byte value 0x8A at 0x458 to 0x88 should change this function to use Y in right shifts. However, there's already a C=A a few lines below, and it reads that C=A (b) is AE6, so, I have some concerns! Changing the byte to 0x86 at 0x458 yields C=A in the disassembly so that is what we're going with.
+So looking this up in the Saturn guide, A=C (b) is AE8 and C=A (b) is AEA. Changing byte value 0x8A at 0x458 to 0x88 should change this function to copy A over C, and thus use vY in right shifts. However, proof reading the byte code, there's actually already a C=A a few lines below, and it's bytecode reads that C=A (b) is AE6, so, I am starting to have some concerns about this reference document! Changing the byte to 0x86 at 0x458 yields C=A in the disassembly, so that is what we're going with.
 
 Shift left however is a more complicated matter:
 
@@ -131,9 +133,9 @@ i8xye:		; VX := VX << 1; carry in VF
 		jump.3		savecarry
 ```
 
-While this could be a simple fix - we could just use A instead of C, when we execute savecarry, we'll have the unchanged value of C still, which isn't going to do us much good. As a result, we need to get out of here so we can move the code around without worrying about disrupting all the existing method calls. In theory this might be fine, because all these jump.3 and call.3 are all relative jumps.
+While this could be a simple fix - we could just use A instead of C, when we execute savecarry, while we will have saved the new value into the vX register (as this is where d0 points), we will still have the unchanged value that was in vX stored in C, which means we will not calculate the shifted out bit for vF correctly. As a result, we need to escape this space so we can move the code around without worrying about disrupting all the existing method calls. In theory this might not sound like a big deal but all goto and subroutine calls are all relative jumps, so any that jump from one side of our code to the other would need to be adjusted.
 
-Anyway here's the plan:
+My initial cunning plan would be to do something like:
 Load the address of our custom code into C
 Push the address of our custom code to the stack
 Jump to alusetup (instead of call) - it still has a return, so it'll pop the address we pushed off the stack and then run the code at our new area.
@@ -173,7 +175,7 @@ move.b a,c
 jump.3 savecarry
 ```
 
-Let's get this done now even though it will probably be able to be stuffed into the space a different function will blow out will replace. Shift Left is located at 008C0, ALU Setup is located at 00392. The binary ends at 010EA, which is byte 0x882 (the file literally ends there). So let's give this a go - loading 6 nibbles into C just because that way we won't upset the decompiler, value of 0010EA...
+Let's get this done now even though it will probably be able to be stuffed into the space a different function will blow out will replace. Shift Left is located at 008C0, ALU Setup is located at 00392. The binary ends at 010EA, which is byte 0x882 (the file literally ends there). So let's give this a go - loading 6 nibbles into C just because that way we won't upset the decompiler, value of 0010EA.
 
 ```
 008C0 -> 0x46D aligned, existing code:
@@ -187,7 +189,7 @@ ala:
 And our code we'll want to execute at address alpha would be:  
 C4 1581 AE6 6???  
 
-But because we're at the end of the binary, it's too far to jump with the 3 nibbles, so we'll have to use golong, which will be 8Cwxyz - this only costs 3 more cycles so it's not that much of a cost, and maybe we can rectify it later. SaveCarry is at 003C7 so we need to jump back to that from it looks like 10f3 + 7? 4346 -> 967
+But because we're at the end of the binary, it's too far to jump with the 3 nibbles, so we'll have to use golong, which will be 8Cwxyz - this only costs 3 more cycles so it's not that much of a cost, and maybe we can rectify it later. SaveCarry is at 003C7 so we need to jump back to that from it looks like 10f3 + 6? F2CE? After fnangling with this value a little, the Disassembler is reporting a different value, so, changing this to F2D1
   
 So now we're saying:  
 C4 1581 AE6 8C1D2F  
@@ -206,8 +208,7 @@ So our disassembly is now looking like:
 010F9  @
 ```
 
-Made a bit of an error here! Copying A to C as a byte isn't going to work since we need the 3rd nibble.
-Should have done this instead:
+Made a bit of an error here! Copying A to C as a byte isn't going to work since we need the 3rd nibble. So, that in addition to dropping 1 from the golong due to being 1 nibble closer:
 
 ```
 C4 1581 D6 8C2D2F
@@ -221,7 +222,7 @@ C4 1581 D6 8C2D2F
 
 Looking good! Let's give it a burl! Test program: http://johnearnest.github.io/Octo/index.html?gist=ac35eb1db0d44ece9169df169140df63
 
-OK So that's great: Crashes immediately. Reason: vF might be insane garbage? Setting vF to 0 in advance fixes the problem. So yeah that's interesting. New Program: http://johnearnest.github.io/Octo/index.html?gist=f86495d81f2cbfe82018b8e3a453a384
+OK So that's great: Crashes immediately. Reason: vF might be insane garbage and making the hex character address point oom? Setting vF to 0 in advance fixes the problem. So yeah that's 'interesting'. New Program: http://johnearnest.github.io/Octo/index.html?gist=f86495d81f2cbfe82018b8e3a453a384
 
 ```
 OCTO results:
@@ -243,9 +244,7 @@ SCHPC results:
 1 0
 ```
 
-Well, shift right is fine, but shift left is not working at all. Is the strategy working correctly at all or is it falling through and not running the code? v0 <<= v1 with v0 as 81 v1 as 82 strongly implies nothing has happened. Perhaps a valid strategy is to change the code to do what it normally did at this point. Having done this, it appears significantly like the code isn't running at all. I'm also feeling like I should probably include the higher byte except: I'd need to use a shift to observer it - I guess I could use BCD.
-
-Let's go for maybe a more reliable method: A big ol jump out to where we want to be. Do the normal ALU load subroutine, then just a big jump out to where we're at
+Well, shift right is fine, but shift left is not working at all. Is the strategy working correctly at all or is it falling through and not running the code? v0 <<= v1 with v0 as 81 v1 as 82 strongly implies nothing has happened. Perhaps a valid strategy is to change the code to do what it normally did at this point. Having done this, it appears significantly like the code isn't running at all. I'm also feeling like I should probably include the higher byte except: I'd need to use a shift to observe it - I guess I could use BCD but oh lord, maybe let's just go for a more reliable method: A big ol jump out to where we want to be. Do the normal ALU load subroutine, then just a big jump out to where we're at:
 
 ```
 008C0 -> 0x46D aligned, existing code:
@@ -253,6 +252,11 @@ Let's go for maybe a more reliable method: A big ol jump out to where we want to
 7ECA 8C4280 C6 C6
 ala:
 e7acc824082020
+
+008C0  GOSUB   00392
+008C4  GOLONG  010EA
+008CA  RTNSC
+008CC  RTNSC
 ```
 
 This change yields
@@ -263,7 +267,7 @@ This change yields
 4 0
 ```
 
-Which is closer. I've tried changing the code to as follows:
+Which is closer, as we now have the 4s. However, the carry bit is still not working. I've tried changing the code to as follows:
 
 ```
 010EA  C=A     A
@@ -273,3 +277,99 @@ Which is closer. I've tried changing the code to as follows:
 ```
 
 Which really really should work, but, still yields 4 0 4 0. Perhaps being able to relocate and not use GOLONG will make a difference but for now this seems like a dead end.
+
+## Fixing it: Take 2
+
+Let's double check the Golong is dissassembling right... We have: 8C2D2F.  
+10F2 is definately the address? 0x886 - 0xD * 2 = 10f2. Code is 6 nibbles, up to 10F8. We definately want to go to 03C7.  
+10F8 -> 3C7 = 4344 -> 967 =>  
+4344 - 32768 + ? = 967 => ? = 967 + 32768 - 4344 = 29391 = 0x72CF, which |= 0x8000 = 0xF2CF.  
+The disassembler claimed the value ought to be F2D2, which is conspicuously 3 more nibbles. When I tested my result with the disassemler, I naively assumed I was making a mistake and bumped it up so that the disassembly addresss matched, but, there aren't many other GOLONGs to compare with in this binary. This is the equation I usually use though...
+
+I mean I guess the jump out there must work, since I'm getting a pair of 4s? Maybe it doesn't? Also, wait, there IS a golong in sc11: 00B18  GOLONG  00675, and, guess what, 00675 isn't even an address for an instruction in the program. There's also a golong in SC10, which is even better because we have the source. Looks like this:
+```
+fx0a_ab:
+	pop.a	c	; adjust stack for forced return
+	jump.4	rtcarry
+
+...
+
+rtcarry:
+nextinstr:
+	call.3	realtime	; do real-time chores
+	brcc	dispatch
+rtcarry:
+	brbs	4,a,restart	; ENTER was pressed
+
+	; otherwise, the abort key was pressed; make a clean exit
+
+exit:
+	inton
+```
+
+And I'm not instantly sure what brbs is but inton (opcode 8080) so let's find that, there's 2 intons in the source and 2 in the dissassembly, and this is matching first:
+```
+00A10  GOLONG  001E4
+00A16  LC      15
+
+001DC  GOSUB   002C5
+001E0  GONC    00202
+001E3  ?ABIT=1 4 				# rtcarry
+001E8  GOYES   0016B
+001EA  INTON
+001EE  ST=1    15
+001F1  GOSBVL  067D2
+001F8  A=DAT0  A
+001FB  D0=D0+  5
+001FE  PC=(A)
+00202  C=R3 +  A 				# Dispatch
+```
+
+So realistically I can assume that the real target address is 1E3.  
+The bytecode for the jump is: 8C1D7F = F7D1, so, A16 + jump = 1E3  
+ala 2582 - 32768 + 30673 ~= 483 ? The uh, working the math through, the left hand side works out 487, based on information I think I know??
+
+#####(More untrustworthy Disassemblers...)
+OK so, after some research:
+While GOSUB and GOSUBL count from the end of the address, GOTO and GOLONG instructions count from the end of only the initial, non address part of the instruction. This means GOSUB = start + value + 4, GOSUBL = start + value + 6, GOTO = start + value + 1, GOLONG = start + value + 2.
+
+Why? That's a good question. I, naively, assumed that they would work in the same way as one another and be based on the whole instruction lenght, hence the +6s earlier.
+
+Additionally, the disassembler I'm using gives an off by +1 error for the calculation and display of the one example I have for GOLONG. My mathematic result of 487 above is based on the address of the LC instruction after the GOLONG (A16), which would be correct if this was GOSUBL - this result is actually off by a value of 4. If we start by dropping the 6 nibbles, to go back to A10, the start of the instruction, when we apply our jump value of F7D1, we'd be put at 481, 0x1E1. We're confident the actual target is 1E3, 2 nibbles afterwards, ie making the jump value relative to the end of the 8C. Since this relative value was calculated by an assembler that didn't generate a horrendously broken programs, we can say with a reasonable confidence that the GOLONG relative address is clearly based on the position of the 8C part of the instruction, and that the disassembler, which shows a resulting address of 1E4 instead of 1E3, knows of this difference, but is off by +1 in this case. No idea as to why that would be, I thought perhaps maybe the GOVLNG command could be 3 nibbles and they got swapped, but it's still only 2, so perhaps just an error in the arithmatic? The GOSUBL command, however, has no such calculation mistakes in the disassembler and correctly points at the resulting addresses. Since I'd worked out the addressing for fixing Jump0's GOSUB call, I applied that knowledge here thinking I had it all figured out, and I, clearly, was wrong...
+
+Anyway, stabbing in this newfound information, it is plain to see that the correct values are:
+
+```
+8C4 + 2 jump to 10EA = 0x824
+
+From 0x46D
+E7ACC824082020
+7ECA 8C4280 20 20
+
+008C0  GOSUB   00392
+008C4  GOLONG  010EA
+008CA  RTNSC
+008CC  RTNSC
+...
+10F2 + 2 jump to 03C7 = F2D3
+
+From 0x882
+6D7C511CC8D3F2
+D6 C6 15C1 8C3D2F
+
+010EA  C=A     A
+010EC  C=C+C   A
+010EE  DAT0=C  2
+010F2  GOLONG  003C8
+```
+So, we can see from this that the Disassembler is giving an off by one ONLY when going backwards. Thanks Decode!
+
+Anyway, this a) didn't crash, b) didn't not work and c) didn't do anything bad, and so, perhaps finally, this quirk has been put to bed:
+
+Octo's standard behavior:  
+![Octo Base](quirk_shift_img/octo_noquirk.png)  
+SCHIP 1.1 (1.0 & C48 behave the same):  
+![SCHIP](quirk_shift_img/schip.jpg)  
+SCHPC:  
+![SCHPC](quirk_shift_img/schpc.jpg)  
+

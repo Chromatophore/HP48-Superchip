@@ -112,7 +112,7 @@
 001D6  R1=A    A
 001DC  GOSUB   002C5
 001E0  GONC    00202
-001E3  ?ABIT=1 4
+001E3  ?ABIT=1 4 				# rtcarry
 001E8  GOYES   0016B
 001EA  INTON
 001EE  ST=1    15
@@ -120,7 +120,7 @@
 001F8  A=DAT0  A
 001FB  D0=D0+  5
 001FE  PC=(A)
-00202  C=R3 +  A
+00202  C=R3 +  A 				# Dispatch area
 00208  A=C     A
 0020A  A=A+2   A
 00210  R3=A    A
@@ -138,7 +138,7 @@
 0023A  C=C+A   A
 0023C  D0=C
 0023F  C=0     A
-00241  C=DAT0  4 				# Dispatch area
+00241  C=DAT0  4 				
 00245  A=PC
 00249  A=A+C   A
 0024B  C=PC
@@ -729,7 +729,7 @@
 00A09  DAT0=C  B
 00A0C  RTNCC
 00A0E  C=RSTK
-00A10  GOLONG  001E4
+00A10  GOLONG  001E4 				# Trying to jump to rtcarry
 00A16  LC      15
 00A1A  ?C#A    B
 00A1D  GOYES   00A2F
