@@ -703,7 +703,7 @@
 0093B  GOC     00914
 0093E  ?C=0    P
 00941  GOYES   00937
-00943  GOSUB   00D1B
+00943  GOSUB   00D1B 					# Calls S_Regs
 00947  C=R0    A
 0094D  GOSUB   00348
 00951  R0=C
@@ -738,7 +738,7 @@
 009BB  C=C+1   B
 009BE  DAT0=C  B 						# This is adding 1 to C and saving it into dat0 and thus vf
 009C3  RTNCC
-009C5  GOSUB   00D1B
+009C5  GOSUB   00D1B 					# Calls SRegs
 009C9  C=R0
 009CC  C=C+C   A
 009CE  A=R2
@@ -1012,8 +1012,8 @@
 00D12  ?C<A    A
 00D15  GOYES   00D00
 00D17  RTNCC
-00D19  RTNSC
-00D1B  A=R4
+00D19  RTNSC 					# End of instructions
+00D1B  A=R4 					# s_rregs
 00D1E  LC      001B1
 00D25  C=C+A   A
 00D27  D0=C
@@ -1030,7 +1030,7 @@
 00D48  DAT0=A  A
 00D4B  D0=D0+  5
 00D4E  RTN
-00D50  A=R4
+00D50  A=R4						# r_rregs
 00D53  LC      001B1
 00D5A  C=C+A   A
 00D5C  D0=C
