@@ -49,7 +49,7 @@ doret1:
 	retclrc
 ```
 
-Now, the astute amonst you may have noticed something. That would be that saucy little comment: "I changes permanently". This subroutine definately updates I has it iterates over the write - which is very much at odds with expectations. This routine starts with d0 pointing at the initial register (v0) and d1 pointing at what I was pointing at but in calculator memory. The loop reads a byte from location d0, and saves it into d1, reads the base pointer out of d0 into C then saves it back into d0 (because we replaced it with the data we saved). Then it checks if C >= A, you'll note that the last instruction of copysetup puts a copy of our end pointer into A - we do this because we can't check d0 vs d1 directly. Then, if this check fails, it knows it hasn't written the last byte of data yet, and it adds 2 (nibbles) to the pointers, moves the r0 value (which is I) to C, increases it with the X field (3 low nibbles) so it can crash the program out if this overflows 0xFFF, then stuffs the result back into r0.
+Now, the astute amonst you may have noticed something. That would be that saucy little comment: "I changes permanently". This subroutine definately updates I as it iterates over the write - which is very much at odds with expectations. This routine starts with d0 pointing at the initial register (v0) and d1 pointing at what I was pointing at but in calculator memory. The loop reads a byte from location d0, and saves it into d1, reads the base pointer out of d0 into C then saves it back into d0 (because we swapped it with the data we wanted to save). Then it checks if C >= A; you'll note that the last instruction of copysetup puts a copy of our end pointer into A - we do this because we can't check d0 vs d1 directly. Then, if this check fails, it knows it hasn't written the last byte of data yet, and it adds 2 (nibbles) to the pointers, moves the r0 value (which is I) to C, increases it with the X field (3 low nibbles) so it can crash the program out if this overflows 0xFFF, then stuffs the result back into r0.
 
 The quirks test program we use, it turns out, has a fatal flaw. If you're any good at loop analysis you'll have noticed that, unlike the behavior on the VIP, while this code does change I, it will not increase it one the final time when it completes, as the loop will exit from the brge - skipping the add 2 and saving to I.
 
@@ -71,8 +71,8 @@ So, what is happening in schip?
 0041C  A=R2 		# Setup Routine for Load/Save coommands. Loads physical address into A
 0041F  C=R0 		# Loads I into C
 00422  C=C+C   A 	# Bytes -> Nibbles
-00424  C=C+A   A 	# C contains physical address of I
-00426  D1=C 		# Set D1 to physical address of I
+00424  C=C+A   A 	# C contains physical address where I points
+00426  D1=C 		# Set D1 to physical address where I points
 00429  A=R4 		# Set A to memory Start area? Turns out, v0-f are at the beginning of memory area
 0042C  AD0EX 		# Swap A with D0?
 0042F  RTN
@@ -97,7 +97,7 @@ So, what is happening in schip?
 00C84  RTNCC
 ```
 
-We can see that this has been modified, with the inclusion of the D register (not to be confused with D0/D1). It has a tighter loop, as using one of the other registers saves on a few operations. You can see though that it makes no attempt to save anything back to r0, so this will not update the I register. The information needed to do so is basically there however, just stored in D and off by 1. Additionally, Copysetup has been significantly neatend up and made faster - d0 when we enter into this function is pointing at the memory location of the last register we want to copy, so, by not modifying d0, when we swap the address of v0 (r4) into it via A, we actually end up with the end address stored back in A, which is exactly what we want to use to terminate our loop.
+We can see that this has been modified, with the inclusion of the D register (not to be confused with D0/D1). It has a tighter loop, as using one of the other registers saves on a few operations. You can see though that it makes no attempt to save anything back to r0, so this will not update the I register. The information needed to do so is basically there however, just stored in D and off by 1. Additionally, Copysetup has been significantly neatend up and made faster - d0 when we enter into this function is pointing at the memory location of the last register we want to copy, so, by not modifying d0, when we swap the address of v0 (r4) into it via A, we actually end up with the physical address of the end register stored back in A, which is exactly what we want to use to terminate our loop.
 
 I think then, it's hard to call the origin of this quirk. It seems like a mistake was made in c48 with the loop design, and that survived unchanged into schip. Then, it seems like it went out of the window entirely when schip received it's speedier rewrite.
 
@@ -112,3 +112,4 @@ OK so this is a the first real test, I guess. If we move our D=D+1 before the GO
 An address of 943 gives me 00947 + 0x7FF yields 0x1146, which is a good ways past the 0x10EA the program currently ends at. Likewise an address of 009A7 yields 0x11AA. These routines are from 00D1B to 00D4E, for s_rregs, and 00D50 to 00D83 for r_rregs, so that's going to put me at 0x111D for the end of the first routine, which is still in 3 nibble range for the calls to the 2nd function. Seems like it should be a reasonable solution to get a big well of space to work with.
 
 Then, I figure when I have the space I'll just copy d to c and save it into r0.
+
