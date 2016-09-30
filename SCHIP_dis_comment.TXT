@@ -298,7 +298,7 @@
 00412  C=DAT0  1
 00416  C=C&A   A
 0041A  RTN
-0041C  A=R2 		# Setup Routine for Load/Save coommands. Loads physical address into A
+0041C  A=R2 		# Setup Routine for Load/Save commands. Loads physical address into A
 0041F  C=R0 		# Loads I into C
 00422  C=C+C   A 	# Bytes -> Nibbles
 00424  C=C+A   A 	# C contains physical address of I
@@ -951,7 +951,7 @@
 00C51  LC      55 				# Stores!
 00C55  ?C#A    B 				# Branch if not equal to save command
 00C58  GOYES   00C86
-00C5A  GOSUBL  0041C 			# Definately Save/Load FINDME
+00C5A  GOSUBL  0041C 			# Definitely Save/Load FINDME
 00C60  C=R0 					# Set C to I
 00C63  D=C     A 				# Copy C to D
 00C65  C=DAT0  B 				# Move byte from dat0 to C - dat0
