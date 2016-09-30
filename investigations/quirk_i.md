@@ -55,9 +55,9 @@ The quirks test program we use, it turns out, has a fatal flaw. If you're any go
 
 And so, a test program was written: http://johnearnest.github.io/Octo/index.html?gist=9a47e585a69283531c2eaeb60e16e914
 
-By saving/loading 2 registers, it becomes possible to detect if the I register moves on 0 (reports 2), 1 (reports 3) or 2 (reports 4). Octo's existing quirk options report the two following results:
+By saving/loading 2 registers, it becomes possible to detect if the I register moves on 0 (reports 2), 1 (reports 3) or 2 (reports 4). Octo's existing quirk options report the two following results:  
 Octo's standard behavior, and I save/load quirks enabled behavior:  
-![Octo Base](quirk_i_img/octo_noquirk.png) ![Octo Quirk](quirk_i_img/octo_quirk.png)
+![Octo Base](quirk_i_img/octo_noquirk.png) ![Octo Quirk](quirk_i_img/octo_quirk.png)  
 C48 & SC10:  
 ![SC10](quirk_i_img/sc10.jpg)  
 SCHIP 1.1:  
@@ -103,15 +103,17 @@ I think then, it's hard to call the origin of this quirk. It seems like a mistak
 
 # Fixing it
 
-OK so this is a the first real test, I guess. If we move our D=D+1 before the GOYES, we should have the correct value stored in it, which seems like the best course of action? If we pointed the GOYES exit to the same point as the Load routine, we could run the same code for both, but, this would only give us 2 nibbles, and all the R storage registers need 3 nibbles, and only worth with A and C. There's really not enough room. However, the code following these routines are 2 not heavily utilised functions that are part of the sprite calls. We're quite near the end of the program, so, it's possible that I might be able to relocate these in entirety out to the end of the code base and use the space left behind for a variety of deeds;
+OK so this is the first real test, I guess. If we move our D=D+1 before the GOYES, we should have the correct value stored in it, which seems like the best course of action? If we pointed the GOYES exit to the same point as the Load routine, we could run the same code for both, but, this would only give us 2 nibbles, and all the R storage registers need 3 nibbles, and only worth with A and C. There's really not enough room. However, the code following these routines are the save/load user registers, and then 2 not heavily utilised functions that are part of the sprite calls. We're quite near the end of the program, so, it's possible that I might be able to relocate these latter two routines in entirety out to the end of the code base, and use the space left behind for a variety of deeds;
 
 ```
 00943  GOSUB   00D1B 					# Calls S_Regs  
 ```
 
-An address of 943 gives me 00947 + 0x7FF yields 0x1146, which is a good ways past the 0x10EA the program currently ends at. Likewise an address of 009A7 yields 0x11AA. These routines are from 00D1B to 00D4E, for s_rregs, and 00D50 to 00D83 for r_rregs, so that's going to put me at 0x111D for the end of the first routine, which is still in 3 nibble range for the calls to the 2nd function. Seems like it should be a reasonable solution to get a big well of space to work with.
+An address of 943 gives me 00947 + 0x7FF yields 0x1146, which is a good ways past the 0x10EA the program currently ends at. Likewise an address of 009A7 for r_rregs yields 0x11AA. These routines are from 00D1B to 00D4E, for s_rregs, and 00D50 to 00D83 for r_rregs, so that's going to put me at 0x111F for the end of the first routine, which is still in 3 nibble range for the calls to the 2nd function. Seems like it should be a reasonable solution to get a big well of space to work with.
 
-Then, I figure when I have the space I'll just copy d to c and save it into r0.
+Then, I figure when I have the space I'll just copy D back to C and save it into r0?
+
+#### Day 2:
 
 Here is what I've ultimately opted for. Firstly, relocating the saving/restoring of the R registers out to the back end of the binary:
 ```
@@ -132,7 +134,7 @@ Here is what I've ultimately opted for. Firstly, relocating the saving/restoring
 0111F  A=R4					# r_rregs
 ```
 
-Then, modifying the Save/Load I routines. I opted instead to not reposition the D=D+1 - this is because if you were to save or load the last byte of memory, it would increment and most likely set the carry flag, which might end up crashing the program out. I decided to just keep it in position and have another d=d+1 where my routines met up, before copying D to C and saving it back to r0:
+Then, modifying the Save/Load I routines. I opted instead to not reposition the D=D+1 - this is because if you were to save or load the last byte of memory, it would increment and set the carry flag, which might end up crashing the program out during a legitimate operation. I'm not sure what we consider correct behavior in this edge case so I figured it's best to just let it work. I decided to just keep it in position, and have another D=D+1 where my routines met up, before copying D to C and saving it back to r0:
 ```
 00C51  LC      55 				# Save instruction
 00C55  ?C#A    B
@@ -176,7 +178,7 @@ Then, modifying the Save/Load I routines. I opted instead to not reposition the 
 00CBF  RTNCC 					# Return, clearing the carry bit if it is set for some reason.
 ```
 
-These extra lines displaced the handling of 75 and 85 by a decent amount, pushing them down into the beginning of what was s_rregs, however, this whole memory area is now full of 01s (rtns) until I find something else to put in there, I guess. The only external call for these is 00431, which I've maintained the correct displacement for considering the shifted code. Otherwise their references are all local.
+These extra lines displaced the handling of 75 and 85 by a decent amount, 6 nibbles I believe, pushing them down into the beginning of what was s_rregs. However, this whole memory area is now basically full of 01s (rtns) until I find something else to put in there, I guess. The only external call for these transposed handlers is 00431, which I've adjusted to maintain the correct displacement, considering the shifted code. Otherwise their references are all local and all appear to be valid.
 
 ```
 00CC1  LC      75
@@ -221,6 +223,7 @@ These extra lines displaced the handling of 75 and 85 by a decent amount, pushin
 
 And you can see that I've padded it such to maintain the position of the code after this point, with this, taken from SCHIP:
 ```
+00D83  RTN
 00D85  C=A     A 					# Suspect this is high res drawing
 00D87  A=A+A   A
 ```
