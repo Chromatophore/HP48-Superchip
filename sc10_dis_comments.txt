@@ -611,9 +611,9 @@
 0087E  C=P     15
 00884  C=0     P
 00889  D1=D1-  2
-0088C  GOSUB   00DE2
-00890  GOSUB   00C69
-00894  GOSUBL  00415
+0088C  GOSUB   00DE2 					# Sprite draw call
+00890  GOSUB   00C69 					# Restore r registers
+00894  GOSUBL  00415 					# Get vF
 0089A  C=0     B
 0089F  ?C=0    P
 008A2  GOYES   008A7
@@ -649,9 +649,9 @@
 0090E  P=C     0
 00912  C=P     15
 00918  D1=D1-  2
-0091B  GOSUB   00CAD
-0091F  GOSUB   00C69
-00923  GOSUBL  00415
+0091B  GOSUB   00CAD 					# Hires? Sprite draw call
+0091F  GOSUB   00C69 					# Restore r registers
+00923  GOSUBL  00415 					# Get vF
 00929  C=0     B
 0092E  ?C=0    P
 00931  GOYES   00936
@@ -894,7 +894,7 @@
 00C1F  GOYES   00C0A
 00C21  RTNCC
 00C23  RTNSC
-00C25  A=R4    A
+00C25  A=R4    A 					# s_rregs
 00C2B  LC      001B1
 00C32  C=C+A   A
 00C34  D0=C
@@ -911,7 +911,7 @@
 00C61  DAT0=C  A
 00C64  D0=D0+  5
 00C67  RTN
-00C69  A=R4 +  A
+00C69  A=R4 +  A 					# r_rregs
 00C6F  LC      001B1
 00C76  C=C+A   A
 00C78  D0=C
@@ -997,9 +997,10 @@
 00DAA  C=C&D  WP
 00DAE  ?C=0    WP
 00DB1  GOYES   00DC0
-00DB3  CPEX    13
-00DB9  LC      1
-00DBC  CPEX    13
+00DB3  CPEX    13 				# Swap P into nibble 13 on C
+		# Secret missing 2 nibble instruction at 00DB7, because DECODE, opcode: 2E = p= 14
+00DB9  LC      1 				# Load C with 1, noting that LC uses the P register to determine the entry point
+00DBC  CPEX    13 				# Restore P from nibble 13 of C
 00DC0  CDEX    WP
 00DC3  C=C!A  WP
 00DC7  D=-D-1  WP

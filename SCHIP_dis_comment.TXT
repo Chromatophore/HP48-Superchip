@@ -738,44 +738,44 @@
 009BB  C=C+1   B
 009BE  DAT0=C  B 						# This is adding 1 to C and saving it into dat0 and thus vf
 009C3  RTNCC
-009C5  GOSUB   00D1B 					# Calls SRegs
-009C9  C=R0
-009CC  C=C+C   A
-009CE  A=R2
-009D1  C=C+A   A
-009D3  R0=C
-009D6  GOSUB   00392
-009DA  D=C     A
-009DC  LC      3F
-009E0  A=A&C   B
-009E4  LC      7F
-009E8  D=D&C   B
-009EC  D1=D1+  2
-009EF  C=0     W
-009F2  B=0     W
-009F5  C=DAT1  1
-009F9  ?C#0    P
-009FC  GOYES   00A07
-009FE  C=C+16  B
-00A04  B=B+1   S
-00A07  RSTK=C
-00A09  C=C+A   B
-00A0C  B=C     B
-00A0F  LC      40
-00A13  B=B-C   B
-00A16  GONC    00A1C
-00A19  B=0     B
-00A1C  C=RSTK
-00A1E  C=C-B   B 					# It is at this point that B ceases to be useful.
-00A21  P=C     0
-00A25  C=P     15
-00A2B  D1=D1-  2
-00A2E  GOSUB   00D85 				# This is high res draw
-00A32  GOSUB   00D50 				# this must be r_rregs
-00A36  GOSUB   0036B 				# This is varfpd0, and it's called after the sprite calls
-00A3A  C=B     A 					# This is taking the value that is in B and saving it into C and thus vf
-00A3C  DAT0=C  B 					# B not accumlating would fix, but, no access to B for fancying
-00A3F  RTNCC 						# There's a return here which is strange a little?
+009C5  GOSUB   00D1B 		# entry		# Calls s_rregs - saves the r0-3 registers
+009C9  C=R0 							# Get I (bytes)
+009CC  C=C+C   A 						# Convert to nibbles
+009CE  A=R2 							# Get memory start pointer
+009D1  C=C+A   A 						# Add this on top
+009D3  R0=C 							# save this in r0; r0 now points to sprite
+009D6  GOSUB   00392 					# xcya routine - obtains x/y coords from sprite call into C and A
+009DA  D=C     A 						# Save X in D
+009DC  LC      3F						# Maskes Y from 0-63
+009E0  A=A&C   B 						# Store in A
+009E4  LC      7F 						# Maskes X from 0-127
+009E8  D=D&C   B 						# Leave in D
+009EC  D1=D1+  2 						# 'get the number of bytes in the sprite (preserving a and d)'
+009EF  C=0     W 						# Pointing at N field, ie, row count in sprite instruction
+009F2  B=0     W 						# NEW IN SCHIP - set B to 0
+009F5  C=DAT1  1 						# Load N count from instruction into C
+009F9  ?C#0    P 						# if not 0, (ie, not a big sprite)
+009FC  GOYES   00A07 					# Skip these next 2 instructions
+009FE  C=C+16  B 						# Add 16 to the value of C - the row length, which is currently 0
+00A04  B=B+1   S 						# B = B+1 in the S field - S field is the highest nibble, F
+00A07  RSTK=C 							# Store this value on the stack.
+00A09  C=C+A   B 						# Add it to A, which is the starting Y value, to calc the bottom row pos
+00A0C  B=C     B 						# Set B to this value (byte field)
+00A0F  LC      40 						# Load 40 into C, the height of the display
+00A13  B=B-C   B 						# Subtract this value from B: This computes overdraw rows.
+00A16  GONC    00A1C 					# If the carry bit is not set, ie, value is >= 0, jump over
+00A19  B=0     B 						# Setting B to 0
+00A1C  C=RSTK 							# Restore the value of C from the stack (# of rows)
+00A1E  C=C-B   B 						# Subtract overdraw row value to ignore these rows completely
+00A21  P=C     0 						# Copy adjusted length into P
+00A25  C=P     15 						# Store this in nibble 15 of C
+00A2B  D1=D1-  2 						# Point back at start of instruction
+00A2E  GOSUB   00D85 					# This is the high res draw routine
+00A32  GOSUB   00D50 					# This is r_rregs
+00A36  GOSUB   0036B 					# This is varfpd0
+00A3A  C=B     A 						# This is taking the value that is in B and saving it into C, and thus vf
+00A3C  DAT0=C  B 						# Save value.
+00A3F  RTNCC 							# Return
 00A41  GOSUB   00351
 00A45  C=0     A
 00A47  C=DAT0  B
@@ -1113,9 +1113,9 @@
 00E50  A=C     WP
 00E53  C=C&D  WP 				# This is our conditional check for colliding
 00E57  ?C=0    WP
-00E5A  GOYES   00E5F 
-00E5C  B=B+1   B 				# This is our candidate for not accumulating rows collided b6A at 0x73b
-00E5F  CDEX    WP 				# Unfortunately, B doesn't have a lot of access, incing it is basically ideal
+00E5A  GOYES   00E5F 			# Skip if no collision
+00E5C  B=B+1   B 				# Add 1 to byte value of B (leaving S nibble alone)
+00E5F  CDEX    WP 				# Continues - far fewer instructions => faster.
 00E62  C=C!A  WP
 00E66  D=-D-1  WP
 00E69  C=C&D  WP

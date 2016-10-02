@@ -38,11 +38,11 @@ Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec,
 Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function in higher resolution display mode.
 #### Swapping Display Modes
 Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is not cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
-#### Collision Enumeration
+#### [Collision Enumeration](investigations/quirk_collide.md)
 An interesting and apparently often unnoticed change to the Super Chip spec is the following:
 All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00.
 In extended screen mode (aka hires), SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1.
-#### Collision with the bottom of the screen
+#### [Collision with the bottom of the screen](investigations/quirk_collide.md)
 Sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, as if they are colliding.
 #### Large Font
 Superchip includes a larger font. This font does not include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
