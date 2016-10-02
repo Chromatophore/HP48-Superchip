@@ -13,13 +13,14 @@ While testing a variety of example roms when I first got my calculator, I discov
 
 ## Investigation:
 
-Since wrapping behavior was an area of interest, I made this program to start this, as well as collision behavior. You can move around 2 small boxes and see how they wrap around the edges of the screen, and how they generate collisions (you can't collide with the text) - the contents of vF are dumped into the two displayed hex digit pairs.
+Since wrapping behavior was an area of interest, I made this program to test this, as well as collision behavior. You can move around 2 small boxes and see how they wrap around the edges of the screen, and how they generate collisions (you can't collide with the text) - the contents of vF are dumped into the two displayed hex digit pairs.
 
 The program clearly shows that this platform does not wrap sprites around the edge of the screen, however that is not what this investigation is about. The program has been tested with both sc10 and SCHIP 1.1. In sc10, the behavior of the boxes corresponds perfectly with what we expect to happen: the boxes report a 1 if they touch each other and a 0 if not. No additional unusual behavior is observed, and nothing unusual happens in lores mode, either:
 
 ![sc10_hires_no](quirk_collide_img/sc10_hires_no.jpg)  
 ![sc10_hires_yes](quirk_collide_img/sc10_hires_yes.jpg)  
 ![sc10_hires_edge](quirk_collide_img/sc10_hires_edge.jpg)  
+(There is significant flickering in this program, so I've enhanced this next image, it reads 00 01)  
 ![sc10_lores_yes](quirk_collide_img/sc10_lores_yes.jpg)  
 ![sc10_lores_edge](quirk_collide_img/sc10_lores_edge.jpg)  
 
@@ -30,13 +31,13 @@ However, in SCHIP 1.1, the following behavior can be observed:
 ![schip_hires_edge](quirk_collide_img/schip_hires_edge.jpg)  
 ![schip_hires_edge2](quirk_collide_img/schip_hires_edge2.jpg)  
 
-In essence, in high res mode only, SCHIP 1.1 reports into vF, after a sprite draw, the number of horizontal rows that contain a collision with either existing graphics, or that run off the bottom edge of the screen. No such behavior is observed horizontally, and the total number of pixels involved does not matter - only rows.
+In essence, in high res mode only, SCHIP 1.1 reports into vF, after a sprite draw, the number of horizontal rows that contain a collision with either existing graphics, or that run off of the bottom edge of the screen. No such behavior is observed horizontally, and the total number of pixels involved does not matter - only rows.
 
-This means that any program testing for if vF == 1 for a collision will, when multiple rows collide, fail to detect a collision.
+This means that any program testing for if vF == 1 for a collision will, when multiple rows collide, fail to detect a collision. Many programs I have seen created for Octojam detect collisions in this way.
 
-As noted in the initial blurb, it turns out that in the SCHIP 1.1 release document, this enumeration change is actually stated straight up: All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00. This is a divergence from the regular behavior, which may be why it's limited to high resolution mode only, which technically is wholly the author's domain and he is by rights able to decide how things work in it. However, no one that we are aware of has, to date, written their games with this row counting feature in mind and as such it could probably be considered an undesirable feature - I have seen people mention that schip 1.1 broke their games that they wrote for sc10.
+As noted in the initial blurb, it turns out that in the SCHIP 1.1 release document, this enumeration change is actually kind of stated straight up: All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00. It doesn't say *why*, granted, but it does state that if you want to detect them then you should use <> 0. This is a divergence from the regular behavior, which may be why it's limited to high resolution mode only, which technically is wholly the author's domain and he is, by rights, able to decide how things work in it. However, no one that I am aware of has, to date, written their games with this row counting feature in mind and as such it could probably be considered an undesirable feature - I have however seen people mention in old newsgroup messages that schip 1.1 broke their games that they wrote for sc10 due to objects failing to collide.
 
-However, the collisions with the bottom of the screen are almost definitely a regression, and not intended: The cause of this should definitely be ascertained and resolved if possible.
+However, the collisions with the bottom of the screen are almost definitely a regression, and not intended: the cause of this should definitely be ascertained and resolved if possible.
 
 # Investigation: Colliding Row Count in vF
 
@@ -76,9 +77,9 @@ schip disassembly
 00E62  C=C!A  WP
 ```
 
-Here we can see that, things have changed slightly. The original way collisions were logged was by using P. P is a special 1 nibble register that also is used in LC, WP field instructions, and ???. Up until this point, it was something that I really didn't quite fully understand, honestly. Anyway, this apparently modifies c.14 (the 14th nibble of c) to store the collision flag. I think that a) there's a mistake in the comments where they say they're storing the collision flag in 13, when they mean 14 and b) once again, DECODE leaves this instruction type out entirely. 
+Here we can see that things have changed slightly. The original way collisions were logged was by using P to write into a high nibble of C. P is a special 1 nibble register that can be used to write single nibbles into certain registers, but is also used in the LC instruction to determine where the write starts, and in WP field instructions, and I'm not even sure what else. Up until this point, it was something that I really didn't quite fully understand, honestly. This sequence modifies c.14 (the 14th nibble of c) to store a 1, which is later read as being the collision flag. I think that a) there's a mistake in the comments where they say they're storing the collision flag in 13, when they likely meant 14 and b) once again, DECODE leaves this instruction type out entirely. 
 
-This method of storing collision state is still used when drawing lores graphics in SCHIP 1.1, which explains why there are no unusual behaviors there, but these are both from extended mode/hires. In SCHIP, instead of modifying P and storing in some upended byte of C, we are increasing the B register by 1 when we find that C&D is not 0 - note here that C is the whole row being written, it writes both bytes as a single word together for big sprites. This means that we are accumulating the number of rows that that have pixels matching those already being displayed (aka collide) into the B register.
+This method of storing collision state is still used when drawing lores graphics in SCHIP 1.1, which explains why there are no unusual behaviors there, but we have extended mode/hires change to review. In SCHIP, instead of modifying P and storing 1 in some high nibble of C, we are increasing the B register by 1 when we find that C&D is not 0 - note here that C is the whole row being written, it writes both bytes as a single word together for big sprites. This means that we are accumulating into the B register the number of rows that have pixels matching those already being displayed (aka collide).
 
 On exit of these routines, these return to this code:
 ```
@@ -101,7 +102,7 @@ schip
 00A3C  DAT0=C  B 						# Save value.
 00A3F  RTNCC 							# Return
 ```
-Here we can see that, in sc10, the low byte of C, nibbles 1 & 2, are set to 0, then if the P field of C is nonzero, it adds 1 to the byte in C, and saves that byte into DAT0, which is aimed at vF's memory via varfpd0. Given that we know that we are storing a flag in a high nibble of C, we can get a feel for how this must be working. In SCHIP, the value of B is copied wholesale into C, and then written to vF - thus, all the colliding rows are saved into vF, and that information is available to the chip-8 program.
+Here we can see that, in sc10, the low byte of C, nibbles 1 & 2, are set to 0, then if the P field of C is nonzero, it adds 1 to the byte in C, and saves that byte into DAT0, which is aimed at vF's memory via varfpd0. Given that we know that we are storing a flag in a high nibble of C, we can get a feel for how this must be working - storing a 0 or a 1 into vf depending on if the flag is set. In SCHIP, the value of B is copied wholesale into C, and then written to vF - thus, all the colliding rows are saved into vF, and that information is available to the chip-8 program, which is exactly what we observe in the test rom.
 
 That I think concludes the investigation of vF = collision rows.
 
@@ -150,15 +151,15 @@ Now for the row reduction code, which is nestled just before the code we talked 
 00A3F  RTNCC 							# Return
 ```
 
-If that's too much to digest in one go, the crux is that; before the sprite draw methods are called, the number of overshoot rows are calculated and removed from the sprite length. This prevents any drawing outside of the viewport, and shows clearly that there is no wrapping. It also does something else:
+If that's too much to digest in one go, the crux is that; before the sprite draw methods are called, the number of overshoot rows are calculated, and if there are any, they are removed from the sprite instruction's N value. This prevents any drawing outside of the viewport, and shows clearly that there is no wrapping. But, it also does something else:
 
-It betrays why overshoot rows are being counted as colliding, even if they are 'empty' rows of a sprite. If there is an overshoot, that value is stored in B, and is used to reduce the draw length in C. Then, at no point between here and the code we discussed in the section above, where it accumulates collisions in the low byte of B, does it clear the value this register - the overshoot row data is just hanging around in B, and accumulated on top of if there happen to be any further collisions.
+It betrays why overshoot rows are being counted as colliding, even if they are 'empty' rows of a sprite. If there is an overshoot, that value is stored in B and is used to reduce the N value (row length) in C. Then, at no point between here and the code we discussed in the section above, where it accumulates collisions in the low byte of B, does it clear the value in that register - the overshoot row data is just hanging around in B, and accumulated on top of if there happen to be any further collisions. As a result, row overshoot data is sitting preloaded in the B register and then copied into vF once the drawing code has finished.
 
 # Fixing it
 
 This one is difficult: is the number of rows being stored in vF something that I should fix? Or, is it a feature? For the sake of having done so, I'm going to work out how to stop it from happening, and given that as far as I am aware, no roms use this, 'fixing' it expands the quantity of software my version of the interpreter could run. As such, I think I'm going to fall on the side of changing it and noting that if anyone wants to use this feature, they can work with the existing schip 1.1 quirks of their own accord.
 
-With that accepted, the quest begins. Immediately after we return from the high res draw, we call a familiar routine, one that we moved earlier when fixing the I quirk; r_rregs. This routine is the one we moved to the very end of the program, and only one other routine calls it - low res draw. There are 2 key things to know about this: Firstly, we are in complete control of it and could easily add code before it, such as setting B to 1 if it is not equal to 0, and secondly, it is a 0x35 long instruction that used to be located 0x35 nibbles before the start of the high res sprite draw routine that the instruction handler calls (GOSUB 00D85). This is exceptionally fortunate, considering I hadn't realised this at all when I was deciding to move these routines out to the back end of the program, and makes fixing this almost a doddle.
+With that accepted, the quest begins. Immediately after we return from the high res draw, we call a familiar routine, one that we moved earlier when fixing the I quirk; r_rregs. This routine is the one we moved to the very end of the program, and only one other routine calls it - low res draw. There are 2 key things to know about this: Firstly, we are in complete control of it and could easily add code before it, such as setting B to 1 if it is not equal to 0, and secondly, it is a 0x35 nibble long routine that used to be located 0x35 nibbles before the start of the high res sprite draw routine that the sprite command handler calls (GOSUB 00D85). This is exceptionally fortunate, considering I hadn't realised this at all when I was deciding to move these routines out to the back end of the program, and makes fixing this almost a doddle as there are no concerns at all about having the space to write the code we need.
 
 # Fixing overdraw
 
@@ -169,7 +170,7 @@ Here is the start of the sprite draw function as it exists in my SCHPC now - pad
 00D85  C=A     A
 00D87  A=A+A   A
 ```
-Setting B to 0 in the A field is opcode D1, so inserting this into 00D83 and changing the routine call at 00A2E to point to this should fix this problem on the spot:
+Setting B to 0 in the A field is opcode D1, so inserting this into 00D83 and changing the GOSUB call at 00A2E to point to 00D83 instead of 00D85 should fix this problem on the spot:
 
 ```
 00A2B  D1=D1-  2
@@ -188,7 +189,7 @@ I verified that this did not appear to upset 16x16 sprites (which write into a h
 
 # 'Fixing' row counter
 
-Instead of calling my r_rregs routine at 111F, I'll insert some bytes that do the following:
+When calling my relocated r_rregs routine at 111F, I'll insert some bytes before thand that do the following:
 ```
 ?B=0
 GOYES r_rregs
@@ -197,7 +198,7 @@ B=B+1
 r_rregs...
 ```
 
-This is because you can't just load a value into B, the instruction for that does not exist; you'd have to do it via C and then set B to C, and this just seems like a reasonably straight forward alternative method of working around that. I think I'm fine using the A field for all of this:
+This is needed because you can't just load a value into B, the instruction for that does not exist; you'd have to do it via the C register and then set B to C, and this just seems like a reasonably straight forward alternative method of working around that. I think I'm fine using the A field for all of this:
 
 ```
 ?B=0 8A9
@@ -206,13 +207,13 @@ B=0 D1
 B=B+1 E5 
 r_rregs
 
-: Change of plans, use B field for B=B+1, due to keeping nibble alignment, don't wanna nibble shift r_rregs all over again... 
-B=B+1 Ba5 => B65
+# Change of plans, use B field for B=B+1, which is 3 nibbles, keeping the length even and therefore keeping the existing nibble alignment, don't wanna nibble shift r_rregs all over again... 
+B=B+1 Ba5 where a is field => B65 for Byte field
 + change GOYES value to 7
 
-current:
+current hex editor data:
 04 11 41 43
-new:
+new hex editor data:
 04 81 9a 07 1d 6b 15 
 
 Result:
