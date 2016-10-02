@@ -32,7 +32,7 @@ Bit shifts X register by 1, VIP: shifts Y by one and places in X, HP48-SC: ignor
 Saves/Loads registers up to X at I pointer - VIP: increases I, HP48-SC: I remains static
 #### [BNNN](investigations/quirk_jump0.md)
 Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads highest nibble of address to select register to apply to address (high nibble pulls double duty)
-#### Memory Limit
+#### [Memory Limit](investigations/quirk_memlimit.md)
 Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. HP48-SC: No such utilisation of memory, but, maximum file length results in crash.
 #### 16x16 Sprites
 Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function in higher resolution display mode.

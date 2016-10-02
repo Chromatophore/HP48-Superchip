@@ -40,7 +40,7 @@
 000C0  D1=D1+  5
 000C3  A=DAT1  A
 000C6  A=A-5   A
-000CC  LC      01C00
+000CC  LC      01C00 				# This is the loading code
 000D3  ?C>A    A
 000D6  GOYES   000E9
 000D8  LC      FFFFF
@@ -729,7 +729,7 @@
 00995  C=P     15
 0099B  C=0     P
 009A0  D1=D1-  2
-009A3  GOSUB   00E81 					# This must be one of the sprite functions
+009A3  GOSUB   00E81 					# This must lores draw
 009A7  GOSUB   00D50 					# this must be r_rregs
 009AB  GOSUBL  0036B 					# This is varfpd0, and it's called after the sprite calls
 009B1  C=0     B
@@ -766,11 +766,11 @@
 00A16  GONC    00A1C
 00A19  B=0     B
 00A1C  C=RSTK
-00A1E  C=C-B   B
+00A1E  C=C-B   B 					# It is at this point that B ceases to be useful.
 00A21  P=C     0
 00A25  C=P     15
 00A2B  D1=D1-  2
-00A2E  GOSUB   00D85 				# This must be one of the sprite functions
+00A2E  GOSUB   00D85 				# This is high res draw
 00A32  GOSUB   00D50 				# this must be r_rregs
 00A36  GOSUB   0036B 				# This is varfpd0, and it's called after the sprite calls
 00A3A  C=B     A 					# This is taking the value that is in B and saving it into C and thus vf
@@ -1124,8 +1124,8 @@
 00E76  ?C=0    S
 00E79  GOYES   00E7F
 00E7B  GOTO    00DCA
-00E7F  RTN 						# Well here is a return. We can assume that LC is involved 
-00E81  A=A+A   A
+00E7F  RTN 						# Well here is a return.
+00E81  A=A+A   A 				# Low Res draw:
 00E83  C=A     A
 00E85  A=A+A   A
 00E87  A=A+A   A
