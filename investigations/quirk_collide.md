@@ -2,21 +2,20 @@
 and 
 #### Collision with the bottom of the screen
 
-An interesting and apparently often unnoticed change to the Super Chip spec is the following:
++ An interesting and apparently often unnoticed change to the Super Chip spec is the following:
 All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00.
 In extended screen mode (aka hires), SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1.  
-+  
-Sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, as if they are colliding. (nb, even if they are empty)
++ Sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, as if they are colliding. (nb, even if they are empty)
 
 ## Initial notes:
 
-While testing a variety of example roms when I first got my calculator, I discovered several things. Firstly, some games were missing coliisions. Secondly, that sw8copter didn't really work at all. Sw8copter is a higher resolution game which uses some scrolling effects, and wants you to move between two girders without getting hit, and when you scroll off the top of the screen you reappear at the bottom.
+While testing a variety of example roms when I first got my calculator, I discovered several things. Firstly, some games were missing collisions. Secondly, that sw8copter didn't really work at all. Sw8copter is a higher resolution game which uses some scrolling effects, and wants you to move between two girders without getting hit, and when you scroll off the top of the screen you reappear at the bottom.
 
 ## Investigation:
 
 Since wrapping behavior was an area of interest, I made this program to start this, as well as collision behavior. You can move around 2 small boxes and see how they wrap around the edges of the screen, and how they generate collisions (you can't collide with the text) - the contents of vF are dumped into the two displayed hex digit pairs.
 
-The program clearly shows that this platform does not wrap sprites around the edge of the screen, however that is not what this investigation is about. The program has been tested with both sc10 and schip 1.1. In sc10, the behavior of the boxes corresponds perfectly with what we expect to happen: the boxes report a 1 if they touch each other and a 0 if not. No additional unusual behavior is observed, and nothing unusual happens in lores mode, either:
+The program clearly shows that this platform does not wrap sprites around the edge of the screen, however that is not what this investigation is about. The program has been tested with both sc10 and SCHIP 1.1. In sc10, the behavior of the boxes corresponds perfectly with what we expect to happen: the boxes report a 1 if they touch each other and a 0 if not. No additional unusual behavior is observed, and nothing unusual happens in lores mode, either:
 
 ![sc10_hires_no](quirk_collide_img/sc10_hires_no.jpg)  
 ![sc10_hires_yes](quirk_collide_img/sc10_hires_yes.jpg)  
@@ -24,24 +23,24 @@ The program clearly shows that this platform does not wrap sprites around the ed
 ![sc10_lores_yes](quirk_collide_img/sc10_lores_yes.jpg)  
 ![sc10_lores_edge](quirk_collide_img/sc10_lores_edge.jpg)  
 
-However, in schip 1.1, the following behavior can be observed:
+However, in SCHIP 1.1, the following behavior can be observed:
 
 ![schip_hires_no](quirk_collide_img/schip_hires_no.jpg)  
 ![schip_hires_yes](quirk_collide_img/schip_hires_yes.jpg)  
 ![schip_hires_edge](quirk_collide_img/schip_hires_edge.jpg)  
 ![schip_hires_edge2](quirk_collide_img/schip_hires_edge2.jpg)  
 
-In essence, in high res mode only, schip 1.1 reports into vF, after a sprite draw, the number of horizontal rows that contain a collision with either existing graphics, or that run off the bottom edge of the screen. No such behavior is observed horizontally, and the total number of pixels involved does not matter - only rows.
+In essence, in high res mode only, SCHIP 1.1 reports into vF, after a sprite draw, the number of horizontal rows that contain a collision with either existing graphics, or that run off the bottom edge of the screen. No such behavior is observed horizontally, and the total number of pixels involved does not matter - only rows.
 
 This means that any program testing for if vF == 1 for a collision will, when multiple rows collide, fail to detect a collision.
 
 As noted in the initial blurb, it turns out that in the SCHIP 1.1 release document, this enumeration change is actually stated straight up: All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00. This is a divergence from the regular behavior, which may be why it's limited to high resolution mode only, which technically is wholly the author's domain and he is by rights able to decide how things work in it. However, no one that we are aware of has, to date, written their games with this row counting feature in mind and as such it could probably be considered an undesirable feature - I have seen people mention that schip 1.1 broke their games that they wrote for sc10.
 
-However, the collisions with the bottom of the screen are almost definitely a regression, and not intended: The cause of this should definately be ascertained and resolved if possible.
+However, the collisions with the bottom of the screen are almost definitely a regression, and not intended: The cause of this should definitely be ascertained and resolved if possible.
 
 # Investigation: Colliding Row Count in vF
 
-First though, being that I am writing this section after the fact, I will take you through how the collisions are counted differently in the different screen modes. Each mode actually has its entire own different sprite drawing function. This makes sence when you note that, in lores mode the calculator is doing a bunch of work to double every pixel and coordinate etc up, and stepping around all that work would be quite slow - a seperate routine makes more sense. Looking at sc10 and schip, you can see that the regular sprite drawing calls have not changed between versions. They run from 00DE2-00EF8 and 00E81-00F97 respectively. The extended mode sprite drawing has however changed somewhat. The difference that applies mostly to us is this section:
+First though, being that I am writing this section after the fact, I will take you through how the collisions are counted differently in the different screen modes. Each mode actually has its entire own different sprite drawing function. This makes sense when you note that, in lores mode the calculator is doing a bunch of work to double every pixel and coordinate etc up, and stepping around all that work would be quite slow - a separate routine makes more sense. Looking at sc10 and SCHIP, you can see that the regular sprite drawing calls have not changed between versions. They run from 00DE2-00EF8 and 00E81-00F97 respectively. The extended mode sprite drawing has however changed somewhat. The difference that applies mostly to us is this section:
 
 ```
 sc10 source:
@@ -57,7 +56,7 @@ nocoll:
 	swap.wp	d,c		; now d = (old and new), a = old, c = new
 	or.wp	a,c		; now c = (old or new)
 
-sc10 dissassembly
+sc10 disassembly
 00DAA  C=C&D  WP
 00DAE  ?C=0    WP
 00DB1  GOYES   00DC0
@@ -68,7 +67,7 @@ sc10 dissassembly
 00DC0  CDEX    WP
 00DC3  C=C!A  WP
 
-schip dissassembly
+schip disassembly
 00E53  C=C&D  WP 				# This is our conditional check for colliding
 00E57  ?C=0    WP
 00E5A  GOYES   00E5F 			# Skip if no collision
@@ -106,7 +105,7 @@ Here we can see that, in sc10, the low byte of C, nibbles 1 & 2, are set to 0, t
 
 That I think concludes the investigation of vF = collision rows.
 
-# Investigation: Edge Collissions
+# Investigation: Edge Collisions
 
 Now for the row reduction code, which is nestled just before the code we talked about just above. Here is the full code from SCHIP 1.1 for handling the sprite x y n call. Pay particular attention from about 00A09, where C will contain the number of rows you are asking to draw for your sprite.
 
@@ -119,9 +118,9 @@ Now for the row reduction code, which is nestled just before the code we talked 
 009D3  R0=C 							# save this in r0; r0 now points to sprite
 009D6  GOSUB   00392 					# xcya routine - obtains x/y coords from sprite call into C and A
 009DA  D=C     A 						# Save X in D
-009DC  LC      3F						# Maskes Y from 0-63
+009DC  LC      3F						# Masks Y from 0-63
 009E0  A=A&C   B 						# Store in A
-009E4  LC      7F 						# Maskes X from 0-127
+009E4  LC      7F 						# Masks X from 0-127
 009E8  D=D&C   B 						# Leave in D
 009EC  D1=D1+  2 						# 'get the number of bytes in the sprite (preserving a and d)'
 009EF  C=0     W 						# Pointing at N field, ie, row count in sprite instruction
@@ -159,7 +158,7 @@ It betrays why overshoot rows are being counted as colliding, even if they are '
 
 This one is difficult: is the number of rows being stored in vF something that I should fix? Or, is it a feature? For the sake of having done so, I'm going to work out how to stop it from happening, and given that as far as I am aware, no roms use this, 'fixing' it expands the quantity of software my version of the interpreter could run. As such, I think I'm going to fall on the side of changing it and noting that if anyone wants to use this feature, they can work with the existing schip 1.1 quirks of their own accord.
 
-With that accepted, the quest begins. Immidietely after we return from the high res draw, we call a familiar routine, one that we moved earlier when fixing the I quirk; r_rregs. This routine is the one we moved to the very end of the program, and only one other routine calls it - low res draw. There are 2 key things to know about this: Firstly, we are in complete control of it and could easily add code before it, such as setting B to 1 if it is not equal to 0, and secondly, it is a 0x35 long instruction that used to be located 0x35 nibbles before the start of the high res sprite draw routine that the instruction handler calls (GOSUB 00D85). This is exceptionally fortunate, considering I hadn't realised this at all when I was deciding to move these routines out to the back end of the program, and makes fixing this almost a doddle.
+With that accepted, the quest begins. Immediately after we return from the high res draw, we call a familiar routine, one that we moved earlier when fixing the I quirk; r_rregs. This routine is the one we moved to the very end of the program, and only one other routine calls it - low res draw. There are 2 key things to know about this: Firstly, we are in complete control of it and could easily add code before it, such as setting B to 1 if it is not equal to 0, and secondly, it is a 0x35 long instruction that used to be located 0x35 nibbles before the start of the high res sprite draw routine that the instruction handler calls (GOSUB 00D85). This is exceptionally fortunate, considering I hadn't realised this at all when I was deciding to move these routines out to the back end of the program, and makes fixing this almost a doddle.
 
 # Fixing overdraw
 
@@ -228,4 +227,4 @@ Now we change the 111f call at 09A7 to be 01129 since we don't want to upset the
 
 ![schpc_hires_yes](quirk_collide_img/schpc_hires_yes.jpg)  
 
-No regressions or unusual behavior has yet been observed with this change.
+No regressions or unusual behavior has yet been observed with this change. You'll also be glad to hear that sw8 copter is now 100% playable.
