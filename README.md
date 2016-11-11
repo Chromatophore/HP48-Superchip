@@ -48,6 +48,8 @@ Sprites that are drawn such that they contain data that runs off of the bottom o
 Superchip includes a larger font. This font does not include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
 #### Platform Speed
 The HP48 calculator is much faster than the Cosmac VIP, but, there is still no solid understanding of how much faster it is for most instructions for the purposes of designing compelling programs with Octo. A [modified version of cmark77](https://johnearnest.github.io/Octo/index.html?gist=0b340c02d2c41c164fd6849a377dd235), a chip 8 graphical benchmark tool written by taqueso on the Something Awful forums was used and yielded scores of 0.80 kOPs in standard/lores and 1.3 kOps in extended/hires. However graphical ops are significantly more costly than other ops on period hardware versus Octo (where they are basically free) and as a result a raw computational cycles/second speed assessment still has not been completed.
+#### Scrolling instructions
+SCHIP's scroll left/right/down instructions were written with its existing display buffer in mind. As a result, they scroll the 128x64 display buffer by 4 or n pixels in the given direction, regardless of if you are in high or low resolution - low resolution simply doubles positions and draws 2x2 blocks, instead of single pixels, but still has the same display buffer. This means that, in low res mode, you only scroll what is effectively 2 pixels to the left and right, and uh, scrolling downwards by an odd number is going to go really weird. There are more issues with vertical scrolling in low res that I have yet to fully understand.
 
 # Thanks
 
