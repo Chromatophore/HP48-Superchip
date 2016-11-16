@@ -699,45 +699,45 @@
 0092E  ?C=0    P
 00931  GOYES   00937
 00933  GOTO    009C5
-00937  GOSUB   0022C
+00937  GOSUB   0022C					# Low resolution draw command handler
 0093B  GOC     00914
 0093E  ?C=0    P
 00941  GOYES   00937
 00943  GOSUB   00D1B 					# Calls S_Regs
 00947  C=R0    A
-0094D  GOSUB   00348
-00951  R0=C
-00954  GOSUB   00392
-00958  D=C     A
-0095A  LC      1F
-0095E  A=A&C   B
-00962  LC      3F
-00966  D=D&C   B
-0096A  D1=D1+  2
-0096D  C=0     B
-00970  C=DAT1  1
-00974  C=C+A   B
-00977  B=C     B
-0097A  LC      20
-0097E  B=B-C   B
-00981  GONC    00987
-00984  B=0     B
-00987  C=0     B
-0098A  C=DAT1  1
-0098E  C=C-B   B
-00991  P=C     0
-00995  C=P     15
-0099B  C=0     P
-009A0  D1=D1-  2
-009A3  GOSUB   00E81 					# This must lores draw
+0094D  GOSUB   00348 					# Calls something like virtophy - puts a real memory pointer for the sprite data into r0
+00951  R0=C 							
+00954  GOSUB   00392 					# xcya routine - obtains x/y coords from sprite call into C and A
+00958  D=C     A 						# Save X in D
+0095A  LC      1F 						# Maskes Y from 0-31
+0095E  A=A&C   B 						# Store in A
+00962  LC      3F 						# Maskes X from 0-63
+00966  D=D&C   B 						# Leave in D
+0096A  D1=D1+  2 						# 'get the number of bytes in the sprite (preserving a and d)'
+0096D  C=0     B 						# Pointing at N field, ie, row count in sprite instruction
+00970  C=DAT1  1 						# Load N 
+00974  C=C+A   B 						# Add it to A, which is the starting Y value, to calc the bottom row pos
+00977  B=C     B 						# Set B to this value (byte field)
+0097A  LC      20 						# Load 20 into C, the height of the display
+0097E  B=B-C   B 						# Subtract this value from B: This computes overdraw rows.
+00981  GONC    00987 					# If the carry bit is not set, ie, value is >= 0, jump over
+00984  B=0     B 						# Setting B to 0
+00987  C=0     B 						# Clear out C
+0098A  C=DAT1  1 						# Load the number of rows again
+0098E  C=C-B   B 						# Subtract overdraw row value to ignore these rows completely
+00991  P=C     0 						# Copy adjusted length into P
+00995  C=P     15 						# Store this in nibble 15 of C
+0099B  C=0     P 						# Set nibble to 0
+009A0  D1=D1-  2 						# Point back at start of instruction
+009A3  GOSUB   00E81 					# This must be the lores draw routine
 009A7  GOSUB   00D50 					# this must be r_rregs
 009AB  GOSUBL  0036B 					# This is varfpd0, and it's called after the sprite calls
-009B1  C=0     B
+009B1  C=0     B 						# Clears out byte nibbles
 009B6  ?C=0    P 						# This is testing if the non byte area of C is 0 I guess
-009B9  GOYES   009BE
-009BB  C=C+1   B
+009B9  GOYES   009BE 					# Skip setting C to 1 (ie 0 or 1 result for collission)
+009BB  C=C+1   B 						
 009BE  DAT0=C  B 						# This is adding 1 to C and saving it into dat0 and thus vf
-009C3  RTNCC
+009C3  RTNCC 							# Return.
 009C5  GOSUB   00D1B 		# entry		# Calls s_rregs - saves the r0-3 registers
 009C9  C=R0 							# Get I (bytes)
 009CC  C=C+C   A 						# Convert to nibbles
