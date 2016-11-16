@@ -1,16 +1,16 @@
 #### 16x16 Sprites & 0 Line Sprites
 
-Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode.
+Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode. In low resolution, an 8x16 sprite (a normal sprite with 16 rows) is drawn.
 
 ## Initial notes:
 
 One of the new features of superchip is the addition of a large, 16x16 sprite. It's selectable by using an aspect of the Chip8 Sprite command that serves no real purpose. The instruction, DXYN, takes an X and Y coordinate, and then a number of lines that can fit in a single nibble. Even though it is a valid option, there is really no reason to draw a sprite with 0 lines. Schip hijacks this and offers special handling for it, drawing a 16x16 sprite.
 
 However, here is note about it in the release documentation:
-...
+```
 In extended screen mode the resolution is 64 by 128 pixels. A
 sprite of 16x16 size is available.
-...
+```
 
 The information that I suspect this tries to relate, but was most likely missed/lost, is that: the 16x16 sprite handler is only available in the extended screen mode. It was right here in the release document, like so many other little things, but its significance was missed.
 
@@ -26,13 +26,13 @@ The Cosmac's Chip8 interpreter's drawing instruction has it's structure laid out
 
 The low res routine starts at 00E81, it's called with the number of rows to draw, 0 to 15, stored in the C register into nibble 15, which is also accessible as the S register. Our test is at at the end of the routine, where we run this code:
 
-...
+```
 00F8B  C=C-1   S 			# Decrease value in S field
 00F8E  ?C=0    S 			# Test if it is 0
 00F91  GOYES   00F97 		# Skip looping if it is 0
 00F93  GOTO    00ECD 		# Go back up and draw another line
 00F97  RTN  				# Return 
-...
+```
 
 This provides our iterations to draw out all our bytes. Here, clearly, there is difference in control flow, so the way our loop unrolls means that we will wrap around from a 0 line input value to 15 before hitting the conditional, which then continues from there, giving us an 8x16 high sprite.
 
