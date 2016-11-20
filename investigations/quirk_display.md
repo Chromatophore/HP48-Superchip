@@ -1,4 +1,4 @@
-#### Swapping Display Modes
+# Swapping Display Modes
 
 Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is not cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
 
@@ -13,19 +13,19 @@ When we approach this from a modern perspective, the canvas changes size and the
 This is quite simple to test, simply by drawing something to the display buffer and changing screen mode. For this purpose, I wrote [this program](http://johnearnest.github.io/Octo/index.html?gist=11c9d501c2ad894161458846423129cd) - it accepts keypad input and cycles through some graphics. The graphics are drawn as a 15 row sprite, stacked vertically in hires mode to be 30 high.
 
 Step 1, lores draw:  
-![octo](quirk_display/step1_octo.jpg)![schip](quirk_display/step1_real.jpg)  
+![octo](quirk_display/step1_octo.png)![schip](quirk_display/step1_real.jpg)  
 Step 2, swap to hires:  
-![octo](quirk_display/step2_octo.jpg)![schip](quirk_display/step2_real.jpg)  
+![octo](quirk_display/step2_octo.png)![schip](quirk_display/step2_real.jpg)  
 Step 3, hires draw top left:  
-![octo](quirk_display/step3_octo.jpg)![schip](quirk_display/step3_real.jpg)  
+![octo](quirk_display/step3_octo.png)![schip](quirk_display/step3_real.jpg)  
 Step 4, hires draw remaining area:  
-![octo](quirk_display/step4_octo.jpg)![schip](quirk_display/step4_real.jpg)  
+![octo](quirk_display/step4_octo.png)![schip](quirk_display/step4_real.jpg)  
 Step 5, swap to lores:  
-![octo](quirk_display/step5_octo.jpg)![schip](quirk_display/step5_real.jpg)  
+![octo](quirk_display/step5_octo.png)![schip](quirk_display/step5_real.jpg)  
 Step 6, lores draw:  
-![octo](quirk_display/step6_octo.jpg)![schip](quirk_display/step6_real.jpg)  
+![octo](quirk_display/step6_octo.png)![schip](quirk_display/step6_real.jpg)  
 Step 7, clear:  
-![octo](quirk_display/step7_octo.jpg)![schip](quirk_display/step7_real.jpg)  
+![octo](quirk_display/step7_octo.png)![schip](quirk_display/step7_real.jpg)  
 
 We can see clearly that swapping display mode does not clear out the display buffer on superchip 1.1. However, we can also see that something else is going on. In principal, in step 6, we draw the sprite that we drew in step 1 again. This should 'undo' the drawing of this image from the display buffer, and give us the hires test pattern we see in Octo in step 4. However, we do not; instead we see a different pattern.
 
