@@ -6,7 +6,7 @@ Superchip has two different display modes, 64x32 and 128x64. When swapped betwee
 
 Because of the memory cost of full screen bitmaps, it's pretty popular for people making Octo games to make a title screen in lores, but have their gameplay be in hires. This means that the display mode is changed as the game is played.
 
-When we approach this from a modern perspective, the canvas changes size and the old one is discarded, especially since the graphics are basically incompatible. This, the pervading assumption is that the existing contents are wiped out, as if a clear command were called.
+When we approach this from a modern perspective, a new canvas is declared with the new size, and the old one is simply discarded (since the graphics are basically incompatible). The pervading assumption is that the existing contents are wiped out, as if a clear command were called. If you were to have a fixed hardware display buffer, as you do on the calculator, this is not implicitly the case.
 
 ## Investigation:
 
@@ -29,10 +29,10 @@ Step 7, clear:
 
 We can see clearly that swapping display mode does not clear out the display buffer on superchip 1.1. However, we can also see that something else is going on. In principal, in step 6, we draw the sprite that we drew in step 1 again. This should 'undo' the drawing of this image from the display buffer, and give us the hires test pattern we see in Octo in step 4. However, we do not; instead we see a different pattern.
 
-I have reproduced the exact pattern for you here:  
+I have reproduced the exact pattern we would expect (left) and the pattern we observe (right) for you here:  
 ![pattern](quirk_display/pixelcomparison.png)
 
-The pattern's causation may not be instantly apparent, however, if you example the bottom section, I have isolated the row where each of the 2 right hand side's patterns start. It isn't repeating just this row, though, it repeats every even row of hires content to the row below it; what we appear to be seeing is the 'correct', 128 px resolution XORing of the even row row of pixels (even though we're in low resoltuion) but with that outcome duplicated over whatever was in the odd row below it.
+The pattern's causation may not be instantly apparent, however, if you example the bottom section, I have isolated the row where each of the 2 right hand side's patterns start. It isn't repeating just this row, though, it repeats every even row of hires content to the row below it; what we appear to be seeing is the 'correct', 128 px resolution XORing of the even row of pixels (even though we're in low resoltuion) but with that outcome duplicated over whatever was in the odd row below it.
 
 At some point I think I've established that the low resolution draw code hasn't changed from superchip 1.0 to superchip 1.1, so let's review the source to try and ascertain if this is indeed the case.
 
@@ -50,17 +50,17 @@ At some point I think I've established that the low resolution draw code hasn't 
 	move	0,p
 ```
 
-Here we see initially the way it xors the graphics (it has detected collisions prior) without actually using xor. This is because, apparently/almost unbelievably, XOR isn't actually available on the HP48. Anyway, once we've done that, it's stored to d0, which is incremented by 34 and then the same result is stored again. In this case, 34 seems to be the memory difference between each row of the display, based on information I found regarding [GROB objects](http://www.hpcalc.org/hp48/docs/faq/48faq-8.html). The only point of concern with this strategy is that, the upper area of the HP48's display, the stack area, is allocated in a different place to the device's menu bar, and thus has a different pointer and the allocation is in a different place, but fortunately for this approach, the upper and lower area are both an even number of rows, so it will never run afoul.
+Here we see initially the way it xors the graphics (it has detected collisions prior) without actually using xor. This is because, apparently/almost unbelievably, XOR isn't natively available on the HP48. Anyway, once we've done that, it's stored to d0, which is then incremented by 34 and then the same result is stored again. In this case, 34 seems to be the memory difference between each row of the display, at least based on information I found regarding [GROB objects](http://www.hpcalc.org/hp48/docs/faq/48faq-8.html). The only point of concern with this strategy is that, the upper area of the HP48's display, the stack area, is allocated in a different place to the device's menu bar, and thus has a different pointer and the allocation is in a different place. Fortunately for this approach, the upper and lower area are both an even number of rows, so it will never run afoul.
 
 ## Fixing it
 
-Currently, there is no accepted outcome for when the draw buffers collide that I'm aware of, so perhaps the switch mode routines should call 'clear'. This could possibly be arranged, however return is a 2 nibble statement and the shortest jump is 4, so, it would require some rearrangement to accomplish.
+Currently, there is no accepted outcome for when the draw buffers collide, at least that I'm aware of, so perhaps the switch mode routines should simply call 'clear' when they're done. This could most likely be arranged, however return is a 2 nibble statement and the shortest jump is 4, so, it would require some rearrangement to accomplish.
 
-This type of 'fixing' isn't really needed, as superchip determines its true functionality, however people may have assumed this behavior in Octojams and it seems reasonable to modify SCHPC to also perform a clear.
+Note that, this type of 'fixing' isn't really needed, as superchip determines its true functionality, however people may have assumed this behavior in Octojams so it seems reasonable to modify SCHPC to also perform a clear when changing mode.
 
-The enable and disable extended mode in sc10 are handled as separate commands, which is perhaps a bit needless, so if their locations can be isolated in schip, it should be quite possible to change them to set eg the B register to something and jump into common code, which then jumps into clear, which is only a one instruction handler (for subroutine return) above them. Or at least this is the case in sc10.
+Enable and disable extended mode graphics in sc10 are handled as separate commands, which is perhaps a bit needless and gives us our 'in', with respect to modifying them, at least if their locations can be isolated in schip - it should be quite possible to change them to set eg the B register to something and jump into some common code, which then in turn jumps into clear, which is only one instruction handler above them.
 
-Having tracked this down in SCHIP's disassembly, by looking for things that might be the instruction detectors and nearby a=r4s:
+Having tracked this down in SCHIP's disassembly (Where they are indeed arranged in a very similar manner) - I found them by looking for things that might be the instruction detectors and nearby a=r4s - I can present to you the disassembly code:
 
 ```
 004D7  LC      FF 			# Load FF to test for Enable Extended instruction
@@ -85,22 +85,22 @@ Having tracked this down in SCHIP's disassembly, by looking for things that migh
 0051B  RTNCC 				# End of Disable
 ```
 
-These routines don't appear to be being called from anywhere else, so it should be safe to edit them. If we instead change this to do something like the following
+These routines don't appear to be being called from anywhere else, so it should be safe to edit them. If we instead change this to do something like the following:
 
 ```
 if !FF -> NextHand_a
 C = F
-B = C
+B = C 			# Stick F in B
 -> CommonSwapMode
 NextHand_a:
 if !FE -> NextHand_b
-B = 0
+B = 0           # Stick 0 in B
 CommonSwapMode:
 A = R4
 C = Offset
 C += A
 D0 = C
-C = B
+C = B 			# Retreive B
 @D0 = C
 RTNCC
 ...
@@ -108,7 +108,7 @@ NextHand_b:
 (existing code at 0051D)
 ```
 
-Then this should compact down the existing code sufficiently to allow us to fit in the extra instructions. Naturally, this will make hires and lores slower instructions, but, realistically, no one is calling these instructions with any frequency. We pretty much have all of the instructions we need to do this present in the area except for B = C, which I should be able to get from the saturn instruction set but, uh, we've had trouble with that before. Let's start disassembling. 004D7 should be around byte 0x278. The Hex editor's showing me 33F18F6A for the next few bytes, so, there's our LC FF, which is 31FF:
+Then this should compact down the existing code sufficiently to allow us to fit in the instructions we need. Naturally, this will make hires and lores into slower instructions, but, realistically, no one is calling these instructions with any frequency. We pretty much have all of the instructions we need to do this present in the area except for the B register related ones, which I should be able to get from the saturn instruction set but, uh, we've had trouble with that before. Let's start disassembling. 004D7 should be around byte 0x278. The Hex editor's showing me 33F18F6A for the next few bytes, so, there's our LC FF, which is 31FF:
 
 ```
 SCHIP 1.1 Disassembly w/ByteCode
@@ -189,4 +189,4 @@ Yielding (after going back and forth to get the above right) a Disassembly outpu
 0051D  C=C-1   B
 ```
 
-So, that ought to do the job, and, when testing with the calculator, does work. Honestly I could put photos here but the bottom line is that it clears the screen and matches Octo's behavior now.
+Which is exactly what we wanted. So, that ought to do the job, and, when testing with the calculator, this does indeed work. Honestly I could put photos here but the bottom line is that it clears the screen and matches Octo's behavior now.
