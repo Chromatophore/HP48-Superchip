@@ -36,7 +36,7 @@ Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads hi
 Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. HP48-SC: No such utilisation of memory, but, maximum file length results in crash.
 #### [16x16 Sprites & 0 Line Sprites](investigations/quirk_16x.md)
 Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode. In low resolution, an 8x16 sprite (a normal sprite with 16 rows) is drawn.
-#### Swapping Display Modes
+#### [Swapping Display Modes](investigations/quirk_display.md)
 Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is not cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
 #### [Collision Enumeration](investigations/quirk_collide.md)
 An interesting and apparently often unnoticed change to the Super Chip spec is the following:
