@@ -32,7 +32,7 @@ We can see clearly that swapping display mode does not clear out the display buf
 I have reproduced the exact pattern for you here:  
 ![pattern](quirk_display/pixelcomparison.png)
 
-The pattern's causation may not be instantly apparent, however, if you example the bottom section, I have isolated the top row of each section. Examination of the graphic shows that this row repeats every 2 rows of the original hires content, and that what we appear to be seeing is the 'correct', 128 px resolution XORing of the this row of pixels even though we're in low resoltuion, but with the outcome duplicated to the row below it.
+The pattern's causation may not be instantly apparent, however, if you example the bottom section, I have isolated the row where each of the 2 right hand side's patterns start. It isn't repeating just this row, though, it repeats every even row of hires content to the row below it; what we appear to be seeing is the 'correct', 128 px resolution XORing of the even row row of pixels (even though we're in low resoltuion) but with that outcome duplicated over whatever was in the odd row below it.
 
 At some point I think I've established that the low resolution draw code hasn't changed from superchip 1.0 to superchip 1.1, so let's review the source to try and ascertain if this is indeed the case.
 
