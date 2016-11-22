@@ -44,7 +44,7 @@ All drawing is done in XOR mode. If this causes one or more pixels to be erased,
 In extended screen mode (aka hires), SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1.
 #### [Collision with the bottom of the screen](investigations/quirk_collide.md)
 Sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, as if they are colliding.
-#### Large Font
+#### [Large Font](investigations/quirk_font.md)
 Superchip includes a larger font. This font does not include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
 #### Platform Speed
 The HP48 calculator is much faster than the Cosmac VIP, but, there is still no solid understanding of how much faster it is for most instructions for the purposes of designing compelling programs with Octo. A [modified version of cmark77](https://johnearnest.github.io/Octo/index.html?gist=0b340c02d2c41c164fd6849a377dd235), a chip 8 graphical benchmark tool written by taqueso on the Something Awful forums was used and yielded scores of 0.80 kOPs in standard/lores and 1.3 kOps in extended/hires. However graphical ops are significantly more costly than other ops on period hardware versus Octo (where they are basically free) and as a result a raw computational cycles/second speed assessment still has not been completed.
