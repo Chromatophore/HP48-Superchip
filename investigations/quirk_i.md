@@ -101,7 +101,7 @@ We can see that this has been modified, with the inclusion of the D register (no
 
 I think then, it's hard to call the origin of this quirk. It seems like a mistake was made in c48 with the loop design, and that survived unchanged into schip. Then, it seems like it went out of the window entirely when schip received it's speedier rewrite.
 
-# Fixing it
+## Fixing it
 
 OK so this is the first real test, I guess. If we move our D=D+1 before the GOYES, we should have the correct value stored in it, which seems like the best course of action? If we pointed the GOYES exit to the same point as the Load routine, we could run the same code for both, but, this would only give us 2 nibbles, and all the R storage registers need 3 nibbles, and only worth with A and C. There's really not enough room. However, the code following these routines are the save/load user registers, and then 2 not heavily utilised functions that are part of the sprite calls. We're quite near the end of the program, so, it's possible that I might be able to relocate these latter two routines in entirety out to the end of the code base, and use the space left behind for a variety of deeds;
 

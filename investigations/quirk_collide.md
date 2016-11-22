@@ -1,6 +1,6 @@
-#### Collision Enumeration
+# Collision Enumeration
 and 
-#### Collision with the bottom of the screen
+# Collision with the bottom of the screen
 
 + An interesting and apparently often unnoticed change to the Super Chip spec is the following:
 All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00.
@@ -39,7 +39,7 @@ As noted in the initial blurb, it turns out that in the SCHIP 1.1 release docume
 
 However, the collisions with the bottom of the screen are almost definitely a regression, and not intended: the cause of this should definitely be ascertained and resolved if possible.
 
-# Investigation: Colliding Row Count in vF
+## Investigation: Colliding Row Count in vF
 
 First though, being that I am writing this section after the fact, I will take you through how the collisions are counted differently in the different screen modes. Each mode actually has its entire own different sprite drawing function. This makes sense when you note that, in lores mode the calculator is doing a bunch of work to double every pixel and coordinate etc up, and stepping around all that work would be quite slow - a separate routine makes more sense. Looking at sc10 and SCHIP, you can see that the regular sprite drawing calls have not changed between versions. They run from 00DE2-00EF8 and 00E81-00F97 respectively. The extended mode sprite drawing has however changed somewhat. The difference that applies mostly to us is this section:
 
@@ -106,7 +106,7 @@ Here we can see that, in sc10, the low byte of C, nibbles 1 & 2, are set to 0, t
 
 That I think concludes the investigation of vF = collision rows.
 
-# Investigation: Edge Collisions
+## Investigation: Edge Collisions
 
 Now for the row reduction code, which is nestled just before the code we talked about just above. Here is the full code from SCHIP 1.1 for handling the sprite x y n call. Pay particular attention from about 00A09, where C will contain the number of rows you are asking to draw for your sprite.
 
@@ -155,13 +155,13 @@ If that's too much to digest in one go, the crux is that; before the sprite draw
 
 It betrays why overshoot rows are being counted as colliding, even if they are 'empty' rows of a sprite. If there is an overshoot, that value is stored in B and is used to reduce the N value (row length) in C. Then, at no point between here and the code we discussed in the section above, where it accumulates collisions in the low byte of B, does it clear the value in that register - the overshoot row data is just hanging around in B, and accumulated on top of if there happen to be any further collisions. As a result, row overshoot data is sitting preloaded in the B register and then copied into vF once the drawing code has finished.
 
-# Fixing it
+## Fixing it
 
 This one is difficult: is the number of rows being stored in vF something that I should fix? Or, is it a feature? For the sake of having done so, I'm going to work out how to stop it from happening, and given that as far as I am aware, no roms use this, 'fixing' it expands the quantity of software my version of the interpreter could run. As such, I think I'm going to fall on the side of changing it and noting that if anyone wants to use this feature, they can work with the existing schip 1.1 quirks of their own accord.
 
 With that accepted, the quest begins. Immediately after we return from the high res draw, we call a familiar routine, one that we moved earlier when fixing the I quirk; r_rregs. This routine is the one we moved to the very end of the program, and only one other routine calls it - low res draw. There are 2 key things to know about this: Firstly, we are in complete control of it and could easily add code before it, such as setting B to 1 if it is not equal to 0, and secondly, it is a 0x35 nibble long routine that used to be located 0x35 nibbles before the start of the high res sprite draw routine that the sprite command handler calls (GOSUB 00D85). This is exceptionally fortunate, considering I hadn't realised this at all when I was deciding to move these routines out to the back end of the program, and makes fixing this almost a doddle as there are no concerns at all about having the space to write the code we need.
 
-# Fixing overdraw
+## Fixing overdraw
 
 Here is the start of the sprite draw function as it exists in my SCHPC now - padded with returns up to 00D85
 ```
@@ -187,7 +187,7 @@ Setting B to 0 in the A field is opcode D1, so inserting this into 00D83 and cha
 
 I verified that this did not appear to upset 16x16 sprites (which write into a high nibble of B), and they do not appear to have been impacted.
 
-# 'Fixing' row counter
+## 'Fixing' row counter
 
 When calling my relocated r_rregs routine at 111F, I'll insert some bytes before thand that do the following:
 ```

@@ -67,7 +67,7 @@ And here's the dissassembly, showing they're the same from sc10 to schip:
 
 OK so with that shown: let's examine what's happening. The length of the string is put into A. A fixed value of 1c00 is placed into C. The largest a chip8 rom can be is 0x0200 to 0x0FFF inclusive, which is 0xE00 bytes, or 1c00 nibbles, which we can see is the value this checks for and stores in C. Then we perform ?C>A, and if the answer is yes, we can proceed, if not, we crash. A valid, albeit maximum length in A would be 1c00, and we will test if 1c00 > 1c00, and it is not, so we will crash out.
 
-# Fixing it
+## Fixing it
 
 The correct check is if C >= A, or A <= C. The opcode in schip at this point is 8B2, which my saturn document suggests is ?A<C, which is equivilent to C>A, so thankfully we can perhaps rely upon it. It lists that there is an A<=C as 8BA, so, let's give that a go:
 
