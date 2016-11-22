@@ -34,7 +34,7 @@ Additionally, it became apparent that the Large Font that Octo uses isn't source
 
 ![Font](quirk_font/bighexcomparison.png)
 
-Additionally, there is one change to the bighex font from sc10 to schip, which is the filling in of the inside corners of the 0. sc10 is on top, schip on the bottom (note how the previous data has ended up in the uninitialised area of memory for values A-F)
+Additionally, there is one change to the bighex font from sc10 to schip, which is the filling in of the inside corners of the 0. sc10 is on top, schip on the bottom (the sc10 picture was actually taken 2nd, note how the previous data has ended up in the uninitialised area of memory for values A-F)
 
 ![Font](quirk_font/fontsc10vsschip.jpg)
 
