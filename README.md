@@ -26,30 +26,30 @@ Many of these additional quirks were quite unexpected and their individual origi
 
 # Behavior and Quirk Investigations
 These will, once I have written them, link to investigations of each quirk of which I am aware.
-#### [8XY6 & 8XYE](investigations/quirk_shift.md)
+#### [8XY6 & 8XYE](investigations/quirk_shift.md) (aka x >>= y, x <<= y)
 Bit shifts X register by 1, VIP: shifts Y by one and places in X, HP48-SC: ignores Y field, shifts X
-#### [FX55 & FX65](investigations/quirk_i.md)
+#### [FX55 & FX65](investigations/quirk_i.md) (aka load vX, save vX)
 Saves/Loads registers up to X at I pointer - VIP: increases I, HP48-SC: I remains static
-#### [BNNN](investigations/quirk_jump0.md)
-Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads highest nibble of address to select register to apply to address (high nibble pulls double duty)
+#### [BNNN](investigations/quirk_jump0.md) (aka jump0)
+Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads highest nibble of address to select register to apply to address (high nibble pulls double duty). Effectively, making it jumpN where target memory address is N##
 #### [Memory Limit](investigations/quirk_memlimit.md)
-Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. HP48-SC: No such utilisation of memory, but, maximum file length results in crash.
-#### [16x16 Sprites & 0 Line Sprites](investigations/quirk_16x.md)
-Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode. In low resolution, an 8x16 sprite (a normal sprite with 16 rows) is drawn.
-#### [Swapping Display Modes](investigations/quirk_display.md)
-Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is not cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
-#### [Collision Enumeration](investigations/quirk_collide.md)
+Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. HP48-SC: No such utilisation of memory, but, maximum file length results in crash. 1 byte less is OK.
+#### [16x16 Sprites & 0 Line Sprites](investigations/quirk_16x.md) (aka sprite vx vy 0)
+Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode. In low resolution, an 8x16 sprite (a normal sprite but with 16 rows) is drawn. VIP draws 0 rows?
+#### [Swapping Display Modes](investigations/quirk_display.md) (aka lores and hires)
+Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is *not* cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
+#### [Collision Enumeration](investigations/quirk_collide.md) 
 An interesting and apparently often unnoticed change to the Super Chip spec is the following:
 All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00.
-In extended screen mode (aka hires), SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1.
+In extended screen mode (aka hires) *only*, SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1. lores functions as expected.
 #### [Collision with the bottom of the screen](investigations/quirk_collide.md)
-Sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, as if they are colliding.
-#### [Large Font](investigations/quirk_font.md)
-Superchip includes a larger font. This font does not include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
+In extended screen mode (aka hires) *only*, sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, exactly as if they are colliding.
+#### [Large Font](investigations/quirk_font.md) (ie i := bighex vx)
+Superchip includes a larger font. This font does *not* include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
 #### Platform Speed
 The HP48 calculator is much faster than the Cosmac VIP, but, there is still no solid understanding of how much faster it is for most instructions for the purposes of designing compelling programs with Octo. A [modified version of cmark77](https://johnearnest.github.io/Octo/index.html?gist=0b340c02d2c41c164fd6849a377dd235), a Chip-8 graphical benchmark tool written by taqueso on the Something Awful forums was used and yielded scores of 0.80 kOPs in standard/lores and 1.3 kOps in extended/hires. However graphical ops are significantly more costly than other ops on period hardware versus Octo (where they are basically free) and as a result a raw computational cycles/second speed assessment still has not been completed.
-#### Scrolling instructions
-SCHIP's scroll left/right/down instructions were written with its existing display buffer in mind. As a result, they scroll the 128x64 display buffer by 4 or n pixels in the given direction, regardless of if you are in high or low resolution - low resolution simply doubles positions and draws 2x2 blocks, instead of single pixels, but still has the same display buffer. This means that, in low res mode, you only scroll what is effectively 2 pixels to the left and right, and uh, scrolling downwards by an odd number is going to go really weird. There are more issues with vertical scrolling in low res that I have yet to fully understand.
+#### Scrolling instructions (aka scroll-down n, scroll-left and scroll right)
+SCHIP's scroll left/right/down instructions were written with its existing display buffer in mind. As a result, they scroll the 128x64 display buffer by 4 or n pixels in the given direction, regardless of if you are in extended (hires) or normal (lores) resolution - low resolution simply doubles positions and draws 2x2 blocks, instead of single pixels, but still has the same display buffer. This means that, in low res mode, you only scroll what is effectively 2 pixels to the left and right, and uh, scrolling downwards by an odd number is going to go really weird. There are more issues with vertical scrolling in low res that I have yet to fully understand.
 
 # Thanks
 
