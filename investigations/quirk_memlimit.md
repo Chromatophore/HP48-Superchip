@@ -1,6 +1,6 @@
 # Memory Limit
 
-Address space of Chip-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. SCHIP: No such utilisation of memory, but, maximum file length results in crash. 1 byte less is OK. Also, data is uninitialised and random.
+Address space of CHIP-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec, less 0x200 bytes as 0x000 to 0x1FF are 'reserved'. VIP: 0xEA0 and above apparently also reserved for system use. SCHIP: No such utilisation of memory space, but, maximum file length results in crash. 1 byte less is OK, so highest address must be 0xFFE / must have 1 byte free. Also, **memory space is uninitialised and random!**
 
 ## Initial notes:
 

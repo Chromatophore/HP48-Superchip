@@ -1,9 +1,11 @@
 # 8XY6 & 8XYE (aka x >>= y, x <<= y)
-Bit shifts X register by 1, VIP: shifts rY by one and places in rX, SCHIP: ignores rY field, shifts existing value in rX.
+Bit shifts a register by 1, VIP: shifts rY by one and places in rX, SCHIP: ignores rY field, shifts existing value in rX.
 
 ## Initial notes:
 
 On some original hardware, possibly the cosmac VIP, my understanding is that the ALU was basically memory mapped such that the last nibble of this instruction was pushed to it pretty much whatever happened, and the instruction set's inclusion of 0-7 & E are simply the documented as being the useful operations.
+
+This was my first attempt at changing the binary, so a large amount of learning and goose chasing is present in this blog.
 
 ## Investigation:
 

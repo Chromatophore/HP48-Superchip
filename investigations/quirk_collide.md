@@ -3,9 +3,9 @@ and
 # Collision with the bottom of the screen
 
 + An interesting and apparently often unnoticed change to the Super Chip spec is the following:
-All drawing is done in XOR mode. If this causes one or more pixels to be erased, VF is <> 00, other-wise 00.
-In SCHIP extended screen mode (aka hires) **only**, SCHIP 1.1 will report the number of rows that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1. lores functions as expected.
-+ In extended screen mode (aka hires) **only**, sprites that are drawn such that they contain data that runs off of the bottom of the screen will set Vf based on the number of lines that run off of the screen, exactly as if they are colliding.
+All drawing is done in XOR mode. If this causes one or more pixels to be erased, **VF is <> 00, other-wise 00**.
+In SCHIP extended screen mode (aka hires) **only**, SCHIP 1.1 will report the **number of rows** that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1, as you may see values between 1 and 16. lores functions as expected; Vf will be only be set to 1 in a collision.
++ In extended screen mode (aka hires) **only**, sprites that are drawn such that they contain data that runs off of the bottom of the screen will a) **not wrap around the screen** and b) also **set Vf** based on the number of lines that run off of the screen, exactly as if **they are colliding**. The two aspects will accumulate together so any normal collisions + overshooting rows will be collected.
 
 ## Initial notes:
 

@@ -1,6 +1,6 @@
 # 16x16 Sprites & 0 Line Sprites (aka sprite vx vy 0)
 
-Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These only function as expected in higher resolution display mode. In low resolution, an 8x16 sprite (a normal sprite but with 16 rows) is drawn. VIP draws 0 rows?
+Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These **only** function as expected in **hires display mode**. In low resolution, an 8x16 sprite (a normal width sprite but with 16 rows) is drawn. VIP draws 0 rows?
 
 ## Initial notes:
 
