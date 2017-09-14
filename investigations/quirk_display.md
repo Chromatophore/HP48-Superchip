@@ -1,6 +1,6 @@
-# Swapping Display Modes
+# Swapping Display Modes (aka lores and hires)
 
-Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is not cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
+Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is *not* cleared. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
 
 ## Initial notes:
 

@@ -1,6 +1,6 @@
-# Large Font
+# Large Font (ie i := bighex vx)
 
-Superchip includes a larger font. This font does not include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
+Superchip includes a larger font. This font does **not** include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
 
 ## Initial notes:
 

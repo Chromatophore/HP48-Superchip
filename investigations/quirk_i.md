@@ -1,6 +1,6 @@
-# FX55 & FX65
+# FX55 & FX65 (aka load vX, save vX)
 
-Saves/Loads registers up to X at I pointer - VIP: increases I, HP48-SC: I remains static
+Saves/Loads registers up to X at I pointer - VIP: increases I by X, SCHIP: I remains static.
 
 ## Initial notes:
 

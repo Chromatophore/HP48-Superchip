@@ -1,5 +1,5 @@
-# BNNN
-Sets PC to address NNN + v0 - VIP: correctly jumps based on v0 HP48-SC: reads highest nibble of address to select register to apply to address (high nibble pulls double duty)
+# BNNN (aka jump0)
+Sets PC to address NNN + v0 - VIP: correctly jumps based on value in v0. SCHIP: reads highest nibble of address to select register instead of v0 (high nibble pulls double duty). Effectively, making it jumpN where target memory address is N##.
 
 ## Initial notes:
 

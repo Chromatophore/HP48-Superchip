@@ -1,5 +1,5 @@
-# 8XY6 & 8XYE
-Bit shifts X register by 1, VIP: shifts Y by one and places in X, HP48-SC: ignores Y field, shifts X
+# 8XY6 & 8XYE (aka x >>= y, x <<= y)
+Bit shifts X register by 1, VIP: shifts rY by one and places in rX, SCHIP: ignores rY field, shifts existing value in rX.
 
 ## Initial notes:
 
@@ -78,7 +78,7 @@ Hopefully this is straight forward enough to not need an explanation beyond the 
 ```
 
 And, here is the disassembly for the Schip1.1 code:
-#####(Untrustworthy Disassemblers)
+##### Untrustworthy Disassemblers
 
 ```
 003C7  CSR     A 					# savecarry.
@@ -329,7 +329,7 @@ So realistically I can assume that the real target address is 1E3.
 The bytecode for the jump is: 8C1D7F = F7D1, so, A16 + jump = 1E3  
 ala 2582 - 32768 + 30673 ~= 483 ? The uh, working the math through, the left hand side works out 487, based on information I think I know??
 
-#####(More untrustworthy Disassemblers...)
+##### More untrustworthy Disassemblers...
 OK so, after some research:
 While GOSUB and GOSUBL count from the end of the address, GOTO and GOLONG instructions count from the end of only the initial, non address part of the instruction. This means GOSUB = start + value + 4, GOSUBL = start + value + 6, GOTO = start + value + 1, GOLONG = start + value + 2.
 
