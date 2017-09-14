@@ -25,7 +25,7 @@ Given the above, if we take the nibble address, 0x00080, this would become 0x04D
 ```
 43 51 05 87
 ```
-Being vaguely familiar with the way the HP48 stores numbers, the way this command is going to work is to say, the LC instruction, N digits - 1, digit data in order of least significant to most significant. However you need to consider that while both the hex editor and the calculator are little endian, the hex editor displays the binary as little endian *bytes*, and so the nibbles with an individual byte are displayed in (for our purposes anyway) the wrong order. Consider the following bit stream separated in these two different ways:
+Being vaguely familiar with the way the HP48 stores numbers, the way this command is going to work is to say, the LC instruction, N digits - 1, digit data in order of least significant to most significant. However you need to consider that while both the hex editor and the calculator are little endian, the hex editor displays the binary as little endian *bytes*, and so the nibbles within an individual byte are displayed in (for our purposes anyway) the wrong order. Consider the following bit stream separated in these two different ways:
 
 ```
 0000111100001111
@@ -38,13 +38,16 @@ vs
 ```
 Now that we know this, let's read the data, reading out the least significant nibble first, and the most significant nibble second. The op code for LC is simply 3, so, this is how that maps in this case:
 ```
+LC (5 digits) 70551
 3 4 70551
 A B CDEFG
 <->
 BA FG DE #C
 43 51 05 87
 ```
-If I had an editor that let me simply read nibbles in the correct order, well, I think that would make this way easier to visualise. The value, 8, paired with the 7 in the last byte, is the first value of the opcode for LA, which is 8082. If you wanted to change the value of this LC call, you would obviously need to make sure to preserve this 8 value when you rewrote the byte. If you needed to load a larger or smaller number, you'd need to adjust the nibble I marked as B.
+If I had an editor that let me simply read nibbles in the correct order, well, I think that would make this way easier to visualise. The nibble value 8, paired with the 7 in the last byte, is the first value of the opcode for LA (which is the next command) - that opcode is 8082. If you wanted to change the 70551 value of the LC call we've been examining, you would obviously need to make sure to preserve this 8 when you rewrote the final byte. If you needed to load a larger or smaller number, you'd need to adjust the nibble I marked as B, but you'd also most likely break the program as all the byte addresses for goto/gosub that spanned the change you were making would no longer function.
+
+For reference, this has been a working example of partially fixing the SCHIP binary to work on the G series calculators. I had to read this number out and change it to 806D0, as this is the new memory mapped location of part of the display (as per [this helpful listing](http://www.hpcalc.org/hp48/docs/programming/ramvars.txt) (Thanks Mika Heiskanen and Joe Horn! This text is again from hpcalc.org, basically the best website). The same was repeated for the LC 7055B, as well as swapping 706D5 for 80853 in the user flags commands, which a recovered G series binary I found did not do.
 
 ### Things to bear in mind about DECODE
 So, despite being my reliable go to, DECODE has at least a couple of problems. Sometimes it completely misses out commands, in particular increment calls seem to often be absent - keep an eye out for instructions taking up more address space than it seems like they should. Also, it has an off by one error for GOLONG addresses, because it calculates based on an incorrect assumption about the opcode + parameter length:
