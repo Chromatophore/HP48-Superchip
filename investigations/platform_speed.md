@@ -6,8 +6,8 @@ The HP48 calculator is much faster than the Cosmac VIP, but, there is still no s
 
 Here are a couple of photos of the benchmark running on the calculators in question:
 
-[schip](platform_speed_img/lores.jpg)
-[schip](platform_speed_img/hires.jpg)
+![lores](platform_speed_img/lores.jpg)
+![hires](platform_speed_img/hires.jpg)
 
 ### Estimated worse case graphical performance:
 ```
