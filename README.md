@@ -40,14 +40,14 @@ Address space of CHIP-8 programs is limited to 0xFFF, 4 kibibytes, but, by spec,
 Superchip claims to add 16x16 sprites by using instruction DXYN with n = 0 (n specified # of lines). These **only** function as expected in **hires display mode**. In low resolution, an 8x16 sprite (a normal width sprite but with 16 rows) is drawn. VIP draws 0 rows?
 #### [Swapping Display Modes](investigations/quirk_display.md) (aka lores and hires)
 Superchip has two different display modes, 64x32 and 128x64. When swapped between, the display buffer is **not cleared**. Pixels are modified based on being XORed in 1x2 vertical columns, so odd patterns can be created.
-#### Sprite Wrapping
-There is **no sprite wrapping** on any HP48 CHIP interpreter.
+#### [Sprite Wrapping](investigations/quirk_collide.md) 
+There is **no sprite wrapping** on any HP48 CHIP interpreter. Collisions will not occur wrapping around the display area.
 #### [Collision Enumeration](investigations/quirk_collide.md) 
 An interesting and apparently often unnoticed change to the Super Chip spec is the following:
 All drawing is done in XOR mode. If this causes one or more pixels to be erased, **VF is <> 00, other-wise 00**.
 In SCHIP extended screen mode (aka hires) **only**, SCHIP 1.1 will report the **number of rows** that include a pixel that XORs with the existing data, so the 'correct' way to detect collisions is Vf <> 0 rather than Vf == 1, as you may see values between 1 and 16. lores functions as expected; Vf will be only be set to 1 in a collision.
 #### [Collision with the bottom of the screen](investigations/quirk_collide.md)
-In extended screen mode (aka hires) **only**, sprites that are drawn such that they contain data that runs off of the bottom of the screen will a) **not wrap around the screen** and b) also **set Vf** based on the number of lines that run off of the screen, exactly as if **they are colliding**. The two aspects will accumulate together so any normal collisions + overshooting rows will be collected.
+In extended screen mode (aka hires) **only**, sprites that are drawn such that they contain data that runs off of the bottom of the screen will a) **not wrap around the screen** and b) also **set Vf** based on the number of lines that run off of the **bottom** screen, exactly as if **they are colliding**. The two aspects will accumulate together so any normal collisions + overshooting rows will be collected.
 #### [Large Font](investigations/quirk_font.md) (ie i := bighex vx)
 Superchip includes a larger font. This larger font does **not** include hex characters A through F - the spec actually states this but I'm not sure anyone realised.
 #### [Platform Speed](investigations/platform_speed.md)
